@@ -56,3 +56,8 @@ next-env.d.ts
 
 # Prisma generated client (regenerated on every `pnpm prisma generate`)
 /src/generated/prisma
+
+# Map data is kept on external SSD (/Volumes/T7 Shield/toirepo-data/).
+# Any local `data/` directory is defensive — we never intend to place
+# multi-GB pmtiles files inside the repo.
+data/
