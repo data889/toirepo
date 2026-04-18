@@ -21,16 +21,22 @@ export type AuthUser = Pick<User, 'id' | 'role' | 'bannedAt' | 'emailVerified'>
 // Static checks (filled in substep B)
 // -----------------------------------------------------------
 
-export function canAccessAdmin(_user: AuthUser | null | undefined): boolean {
-  throw new Error('TODO: T2.5 B')
+export function canAccessAdmin(user: AuthUser | null | undefined): boolean {
+  if (!user) return false
+  if (isBanned(user)) return false
+  return user.role === 'ADMIN'
 }
 
 export function canAutoPublish(_user: AuthUser | null | undefined): boolean {
-  throw new Error('TODO: T2.5 B')
+  // SPEC §2.2: trusted-user auto-publish is a V1.0 feature. In MVP every
+  // submission goes through the moderation queue, so this always returns
+  // false. Keeping the function + signature now means callers in M5/M6
+  // can wire it up today and the V1.0 flip is a single-function change.
+  return false
 }
 
-export function isBanned(_user: AuthUser): boolean {
-  throw new Error('TODO: T2.5 B')
+export function isBanned(user: AuthUser): boolean {
+  return user.bannedAt !== null
 }
 
 // -----------------------------------------------------------
