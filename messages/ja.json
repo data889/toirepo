@@ -18,5 +18,19 @@
   },
   "localeSwitcher": {
     "label": "言語"
+  },
+  "auth": {
+    "signin": {
+      "title": "toirepo にログイン",
+      "subtitle": "東京の隠れた無料トイレを見つけよう",
+      "google": "Google アカウントでログイン",
+      "or": "または",
+      "emailLabel": "メールアドレス",
+      "emailSubmit": "ログインリンクを送信"
+    },
+    "verifyRequest": {
+      "title": "メールをご確認ください",
+      "body": "ログインリンクをメールで送信しました。リンクをクリックするとログインが完了します。"
+    }
   }
 }

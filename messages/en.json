@@ -18,5 +18,19 @@
   },
   "localeSwitcher": {
     "label": "Language"
+  },
+  "auth": {
+    "signin": {
+      "title": "Sign in to toirepo",
+      "subtitle": "Find the hidden free toilets in Tokyo",
+      "google": "Sign in with Google",
+      "or": "or",
+      "emailLabel": "Email",
+      "emailSubmit": "Send login link"
+    },
+    "verifyRequest": {
+      "title": "Check your email",
+      "body": "We've sent a login link to your email. Click it to finish signing in."
+    }
   }
 }

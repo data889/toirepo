@@ -18,5 +18,19 @@
   },
   "localeSwitcher": {
     "label": "语言"
+  },
+  "auth": {
+    "signin": {
+      "title": "登录 toirepo",
+      "subtitle": "发现东京那些藏起来的免费厕所",
+      "google": "使用 Google 账号登录",
+      "or": "或",
+      "emailLabel": "邮箱",
+      "emailSubmit": "发送登录链接"
+    },
+    "verifyRequest": {
+      "title": "检查你的邮箱",
+      "body": "我们已发送登录链接到你的邮箱。点击链接即可完成登录。"
+    }
   }
 }
