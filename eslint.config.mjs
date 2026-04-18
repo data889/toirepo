@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // Prisma-generated client: ships with require()-style internals
+    // and unused runtime helpers that our rules don't apply to.
+    'src/generated/**',
   ]),
 ])
 
