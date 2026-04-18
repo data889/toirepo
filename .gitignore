@@ -61,3 +61,7 @@ next-env.d.ts
 # Any local `data/` directory is defensive — we never intend to place
 # multi-GB pmtiles files inside the repo.
 data/
+
+# Background-script logs and PID files (long-running jobs like
+# pmtiles download via nohup).
+logs/
