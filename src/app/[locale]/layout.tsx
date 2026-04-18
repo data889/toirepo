@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { routing } from '@/i18n/routing'
+import { TRPCProvider } from '@/lib/trpc/client'
 import '../globals.css'
 
 export const metadata: Metadata = {
@@ -26,7 +27,9 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className="h-full antialiased">
       <body className="flex min-h-full flex-col font-sans">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <TRPCProvider>{children}</TRPCProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )
