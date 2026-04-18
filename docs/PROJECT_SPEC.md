@@ -23,6 +23,12 @@
    SPEC §5.2 schema 里不再需要 `previewFeatures = ["postgresqlExtensions"]`
    的 flag。其余 API 对本项目 MVP 范围（无 middleware 使用）高度兼容。
 
+5. **Zod 版本**：v1.0 写 "Zod 3"，实施时 `pnpm add` 默认拉到 **4.3.6**。
+   决定：接受升级。v4 与本项目用到的 API 子集（`.parse`、`.safeParse`、
+   `z.object`、`z.string`、`z.enum`、`z.nativeEnum`、`z.array`、`z.tuple`、
+   `z.infer`）完全兼容；`z.record()` 签名改变将在写 schema 时由 TS
+   显式提示，不构成隐藏风险。tRPC v11 原生兼容 Zod v4。
+
 ---
 # toirepo.app · 项目规格文档
 

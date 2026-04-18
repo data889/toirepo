@@ -30,10 +30,22 @@
 - **Prisma 5 → 7**：`pnpm add @prisma/client` 默认拉到 7.7.0。决定：接受升级。
   `postgresqlExtensions` 从 preview 转为稳定，§5.2 schema 的 `previewFeatures` flag
   可省略。详见 PROJECT_SPEC v1.1 变更说明第 4 条。
+- **Zod 3 → 4**：`pnpm add zod` 默认拉到 4.3.6。决定：接受升级。本项目用到的
+  API 子集与 v4 完全兼容，`z.record()` 签名变化由 TS 显式提示。详见
+  PROJECT_SPEC v1.1 变更说明第 5 条。
 - **pnpm 构建白名单**：pnpm v10 默认禁用 postinstall 脚本。本项目在 `package.json`
   顶层加 `"pnpm": { "onlyBuiltDependencies": [...] }` 显式允许 Prisma 的 engine
   构建脚本。未来批次若出现其他需构建的包（如 sharp、esbuild、swc 变体），
   追加到该数组，并在对应批次 commit 说明。
+
+## T1.2 批次偏差处理规则（自批次 4 起）
+
+为避免每批都停，约定：
+
+- **下游运行时库**的大版本偏差：本批 commit body 里记录，T1.2 总验收时统一补一次
+  `docs: bump v1.1 — T1.2 version deltas` commit。
+- **架构级库**（地图、i18n、PWA、监控）的大版本偏差：立即停下来。
+- 任何 peer dep error / engine 错误 / install 失败 / 需要新加白名单：立即停下来。
 
 后续任务如实际执行偏离 v1.0 文本，同样在此处追加说明。
 
