@@ -16,6 +16,8 @@
     "typecheck": "tsc --noEmit",
     "smoke:db": "tsx --env-file=.env.local scripts/smoke-test-db.ts",
     "smoke:ratelimit": "tsx --env-file=.env.local scripts/smoke-test-ratelimit.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
     "prepare": "husky"
   },
