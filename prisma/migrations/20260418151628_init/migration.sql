@@ -1,3 +1,6 @@
+-- PostGIS extension required for geography(Point, 4326) columns on the Toilet table
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('USER', 'TRUSTED_USER', 'MODERATOR', 'SENIOR_MODERATOR', 'ADMIN');
 
