@@ -45,9 +45,17 @@
   决定：接受升级。`zodResolver` 的 import 模式（`@hookform/resolvers/zod`）
   跨 v3/v4/v5 稳定，v5 主要是对 Zod 4 的 TS 类型优化。记录在批次 9 commit
   996d782 body 中。
-- **@trpc/next 新增**：SPEC §3.1 只列了 `@trpc/server/client/react-query`，
+- **@trpc/next 新增**：SPEC §3.1 只列了 `@trpc/server/client/react-query`,
   T1.2 实际多装了 `@trpc/next` 11.16.0（Next.js 专用 helper，与其他 tRPC 包
   同版本）。非版本偏差，只是补全 tRPC Next.js 集成必需的姐妹包。
+- **@types/node 20 → 22**：SPEC T1.2 依赖清单期望 `^22` 但 create-next-app
+  脚手架预装 `^20`。T1.2 总验收时发现并升级到 22.19.17，对齐 Node 22 运行时
+  类型（v22 新增的 API 如 `process.loadEnvFile`、原生 `WebSocket` 等在代码
+  里可获得类型提示）。
+- **lint-staged 15 → 16**：T1.1 F 子步骤 `pnpm add -D lint-staged` 未带版本
+  号，拉到 v16.4.0，超出 SPEC T1.2 期望的 `^15`。v15 → v16 主要是移除 Node
+  18 支持与 CLI flag 重命名；本项目通过 `package.json` 的 `lint-staged` config
+  对象使用，格式兼容，pre-commit hook 一直正常工作。保留 v16，不降级。
 - **白名单追加（批次 5）**：`@parcel/watcher` + `@swc/core` 加入
   `onlyBuiltDependencies`。用途：next-intl 的 transitive deps，负责文件监听和
   JS/TS 编译的原生 binding。不批准 postinstall 会 fallback 到 JS/WASM，dev
