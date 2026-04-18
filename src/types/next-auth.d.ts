@@ -10,6 +10,8 @@ declare module 'next-auth' {
       image?: string | null
       role: UserRole
       locale: string
+      bannedAt: Date | null
+      emailVerified: Date | null
     }
   }
   interface User {
