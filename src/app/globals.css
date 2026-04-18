@@ -48,42 +48,88 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ============================================================
+ * toirepo custom theme tokens (SPEC §4.2 / §4.3)
+ * Hex values are the single source of truth; docs/COLORS.md mirrors.
+ * ============================================================ */
+@theme {
+  /* Map surface — §4.2 */
+  --color-paper: #fdfcf9;
+  --color-street-main: #b8b4a8;
+  --color-street-minor: #d8d4c8;
+  --color-water: #e8e4d8; /* water is NOT blue — §4.2 */
+  --color-rail: #c4a8a0;
+  --color-map-label: #8a8578;
+  --color-park: #e8ebe0;
+
+  /* Toilet icons — §4.2 */
+  --color-toilet-public: #d4573a; /* circle · P */
+  --color-toilet-mall: #2c6b8f; /* rounded square · M */
+  --color-toilet-konbini: #5c8a3a; /* triangle · C */
+  --color-toilet-purchase: #b8860b; /* pentagon · ¥ */
+
+  /* UI ink & semantic — §4.2 */
+  --color-ink-primary: #2c2c2a;
+  --color-ink-secondary: #5f5e5a;
+  --color-ink-tertiary: #888780;
+  --color-border-soft: #e0dcd0;
+  --color-btn-primary: #2c2c2a;
+  --color-btn-on-primary: #fdfcf9;
+  --color-link: #2c6b8f;
+  --color-error: #c5432a;
+  --color-success: #4a7a2c;
+
+  /* Brand font — §4.3 (sans stack handled via --font-sans in :root) */
+  --font-brand: 'Inter', system-ui, sans-serif;
+}
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* shadcn semantic tokens overridden to SPEC §4.2 palette */
+  --background: #fdfcf9;
+  --foreground: #2c2c2a;
+  --card: #fdfcf9;
+  --card-foreground: #2c2c2a;
+  --popover: #fdfcf9;
+  --popover-foreground: #2c2c2a;
+  --primary: #2c2c2a;
+  --primary-foreground: #fdfcf9;
+  --secondary: #e0dcd0;
+  --secondary-foreground: #2c2c2a;
+  --muted: #e0dcd0;
+  --muted-foreground: #5f5e5a;
+  --accent: #2c6b8f;
+  --accent-foreground: #fdfcf9;
+  --destructive: #c5432a;
+  --border: #e0dcd0;
+  --input: #e0dcd0;
+  --ring: #2c6b8f;
+  --chart-1: #d4573a; /* public */
+  --chart-2: #2c6b8f; /* mall */
+  --chart-3: #5c8a3a; /* konbini */
+  --chart-4: #b8860b; /* purchase */
+  --chart-5: #888780; /* neutral */
+  --radius: 0.5rem;
+
+  /* Sidebar — unused in MVP, kept tonal for any accidental render */
+  --sidebar: #fdfcf9;
+  --sidebar-foreground: #2c2c2a;
+  --sidebar-primary: #2c2c2a;
+  --sidebar-primary-foreground: #fdfcf9;
+  --sidebar-accent: #e0dcd0;
+  --sidebar-accent-foreground: #2c2c2a;
+  --sidebar-border: #e0dcd0;
+  --sidebar-ring: #2c6b8f;
+
+  /* Sans stack — §4.3. Consumed by @theme inline's --font-sans reference. */
+  --font-sans:
+    'PingFang SC', 'Hiragino Sans', 'Noto Sans JP', 'Noto Sans SC', system-ui, sans-serif;
 }
 
 .dark {
+  /* SPEC §4.6: MVP does not ship a dark mode. The .dark block is
+   * retained (and left at shadcn defaults) so that shadcn components
+   * which reference .dark-scoped tokens still resolve in any
+   * accidental .dark context. Activation is intentionally absent. */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
