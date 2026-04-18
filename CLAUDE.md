@@ -20,6 +20,7 @@
 - `docs/PROJECT_SPEC.md` — 规格总纲（"是什么"）。v1.1，顶部有 v1.0→v1.1 变更说明。
 - `docs/TASK_BREAKDOWN.md` — 任务拆解（"怎么做"）。v1.1，按 M1→M11 顺序执行。
 - `docs/README.md` — 文档使用说明。
+- `docs/COLORS.md` — 配色快查表（SPEC §4.2 落地成果，编写样式/图标时必查）。
 
 SPEC 与推断冲突时以 SPEC 为准。发现 SPEC 有歧义或缺失，**停下来问人**，不得自行假设。
 
