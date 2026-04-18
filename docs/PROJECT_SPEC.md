@@ -29,6 +29,13 @@
    `z.infer`）完全兼容；`z.record()` 签名改变将在写 schema 时由 TS
    显式提示，不构成隐藏风险。tRPC v11 原生兼容 Zod v4。
 
+6. **地图库版本**：v1.0 指定 `maplibre-gl@^4` 和 `react-map-gl@^7`，
+   实施时 `pnpm add` 默认拉到 **maplibre-gl 5.23.0** 和 **react-map-gl 8.1.1**。
+   决定：接受升级。配套 TASK_BREAKDOWN T3.4 的 import 路径示例已同步修订
+   （react-map-gl v8 移除了 `react-map-gl/maplibre` 子路径，改为通过
+   `mapLib` prop 在运行时注入 maplibre-gl）。MapLibre v5 对本项目
+   从零设计的 `toirepo-paper.json` 样式无实质影响。
+
 ---
 # toirepo.app · 项目规格文档
 

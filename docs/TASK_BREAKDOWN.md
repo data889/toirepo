@@ -33,6 +33,10 @@
 - **Zod 3 → 4**：`pnpm add zod` 默认拉到 4.3.6。决定：接受升级。本项目用到的
   API 子集与 v4 完全兼容，`z.record()` 签名变化由 TS 显式提示。详见
   PROJECT_SPEC v1.1 变更说明第 5 条。
+- **maplibre-gl 4 → 5 · react-map-gl 7 → 8**：两个地图库均默认装到最新主版本。
+  决定：接受升级。T3.4 步骤 2 的 import 写法同步修订为 `react-map-gl` + `mapLib`
+  prop 注入 maplibre-gl（v8 已移除 `react-map-gl/maplibre` 子路径）。详见
+  PROJECT_SPEC v1.1 变更说明第 6 条。
 - **pnpm 构建白名单**：pnpm v10 默认禁用 postinstall 脚本。本项目在 `package.json`
   顶层加 `"pnpm": { "onlyBuiltDependencies": [...] }` 显式允许 Prisma 的 engine
   构建脚本。未来批次若出现其他需构建的包（如 sharp、esbuild、swc 变体），
@@ -46,6 +50,8 @@
   `docs: bump v1.1 — T1.2 version deltas` commit。
 - **架构级库**（地图、i18n、PWA、监控）的大版本偏差：立即停下来。
 - 任何 peer dep error / engine 错误 / install 失败 / 需要新加白名单：立即停下来。
+- 当依赖库实际 API 与 SPEC 代码示例冲突时，允许直接修改 SPEC 正文示例，
+  以库的实际 API 为准，并在 v1.1 变更说明里记录修订点。
 
 后续任务如实际执行偏离 v1.0 文本，同样在此处追加说明。
 
@@ -369,7 +375,8 @@ H. 本说明同步（此 commit）
 
 **步骤**：
 1. 创建 `src/components/map/MapCanvas.tsx`
-2. 使用 `react-map-gl/maplibre` 封装
+2. 使用 `react-map-gl` 封装，通过 `mapLib={maplibregl}` prop 注入 MapLibre GL JS
+   （v8+ 已移除 `react-map-gl/maplibre` 子路径导入方式）
 3. 初始化中心点：东京站 (35.6812, 139.7671)，zoom=14
 4. 支持用户定位权限请求（按钮触发，不自动请求）
 5. 添加 Zoom controls（样式覆写为纸质感）
