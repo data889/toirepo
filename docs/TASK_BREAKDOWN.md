@@ -56,6 +56,13 @@
   `pg` 8.20.0、`@types/pg` 8.20.0（dev）、`dotenv` 17.4.2（dev，供
   `prisma.config.ts` 使用）。非 SPEC §3.1 原始列表。Prisma 7 强制 adapter
   模式连接数据库，此改动在 PROJECT_SPEC v1.1 第 4 条有详细说明。
+- **T2.2 新增包 · Prisma + Next.js 16 + pnpm 兼容**：`@prisma/client-runtime-utils`
+  7.7.0 作为直接依赖（原本是 `@prisma/client` 的 transitive dep，但 pnpm 严格
+  链接模式下 Next.js bundler 解析不到）。同时 `next.config.ts` 加
+  `serverExternalPackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` 让
+  Next.js 不 bundle Prisma runtime。
+- **T2.2 `middleware.ts` → `proxy.ts`**：Next.js 16 改了文件约定名，详见
+  PROJECT_SPEC v1.1 第 9 条。
 - **lint-staged 15 → 16**：T1.1 F 子步骤 `pnpm add -D lint-staged` 未带版本
   号，拉到 v16.4.0，超出 SPEC T1.2 期望的 `^15`。v15 → v16 主要是移除 Node
   18 支持与 CLI flag 重命名；本项目通过 `package.json` 的 `lint-staged` config

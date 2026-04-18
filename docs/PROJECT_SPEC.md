@@ -60,6 +60,12 @@
    Prisma schema 层准确反映"应用不写此字段"的意图。SPEC §5.2 Toilet model
    定义已同步修订。这是 Prisma 社区 PostGIS 标准模式。
 
+9. **Next.js 16 proxy 约定**：v1.0 使用 `src/middleware.ts`，Next.js 16 已将该
+   文件约定重命名为 `src/proxy.ts`（middleware 路径仍兼容但发 deprecation
+   警告）。T2.2 一并完成重命名 + 文档同步。另外，Proxy 文件默认运行在 Node.js
+   runtime（旧 middleware 默认 edge），不再需要手工 `export const runtime = 'nodejs'`
+   来让 Prisma 等 Node-only 依赖工作。
+
 ---
 # toirepo.app · 项目规格文档
 
@@ -1159,7 +1165,7 @@ toirepo/
 │   │   └── utils.ts
 │   ├── hooks/
 │   ├── styles/
-│   └── middleware.ts               # i18n 路由 + 认证检查
+│   └── proxy.ts                    # i18n 路由 + 认证检查（Next.js 16 约定，v1.1 #9）
 ├── tests/
 │   ├── e2e/                        # Playwright
 │   └── unit/                       # Vitest

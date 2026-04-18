@@ -10,7 +10,7 @@ const intlMiddleware = createIntlMiddleware(routing)
 const ADMIN_PATH_RE = /^\/(zh-CN|ja|en)\/admin(\/.*)?$/
 const PROTECTED_PATH_RE = /^\/(zh-CN|ja|en)\/me(\/.*)?$/
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Auth.js API routes must be served at bare /api/auth/* so that OAuth
@@ -42,7 +42,6 @@ export const config = {
   matcher: ['/((?!api/auth|_next|_vercel|.*\\..*).*)'],
 }
 
-// Opt out of edge runtime: auth() reads the Session table via Prisma, whose
-// query engine is Node-only (not edge-compatible). Next.js 16 supports
-// runtime = 'nodejs' in middleware to bypass the edge sandbox.
-export const runtime = 'nodejs'
+// No `export const runtime` needed — Next.js 16 Proxy convention ALWAYS runs
+// on Node.js. (The earlier middleware.ts variant needed runtime='nodejs' to
+// escape the edge sandbox; proxy.ts removed that knob entirely.)
