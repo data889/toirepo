@@ -15,7 +15,9 @@ export default async function proxy(request: NextRequest) {
 
   // Auth.js API routes must be served at bare /api/auth/* so that OAuth
   // callback URLs are stable — do not apply i18n or auth guards here.
-  if (pathname.startsWith('/api/auth')) {
+  // tRPC routes at /api/trpc/* are also bypassed (matcher excludes them
+  // too, this is just a belt-and-braces early return).
+  if (pathname.startsWith('/api/auth') || pathname.startsWith('/api/trpc')) {
     return NextResponse.next()
   }
 
@@ -39,7 +41,7 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api/auth|_next|_vercel|.*\\..*).*)'],
+  matcher: ['/((?!api/auth|api/trpc|_next|_vercel|.*\\..*).*)'],
 }
 
 // No `export const runtime` needed — Next.js 16 Proxy convention ALWAYS runs
