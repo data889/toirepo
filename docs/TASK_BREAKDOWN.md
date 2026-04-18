@@ -45,6 +45,12 @@
   `onlyBuiltDependencies`。用途：next-intl 的 transitive deps，负责文件监听和
   JS/TS 编译的原生 binding。不批准 postinstall 会 fallback 到 JS/WASM，dev
   hot-reload 与 build 速度显著下降。
+- **白名单追加（批次 8）**：`@sentry/cli`、`core-js`、`protobufjs` 加入
+  `onlyBuiltDependencies`。用途：`@sentry/cli` 下载 sentry-cli 二进制（M10
+  T10.2 source maps 上传依赖）；`core-js` postinstall 仅打印感谢信，加入是为
+  清零警告噪音；`protobufjs` 是 posthog-js 事件序列化依赖。当前完整列表：
+  @prisma/engines, prisma, @parcel/watcher, @swc/core, @sentry/cli, core-js,
+  protobufjs。
 - **pnpm 构建白名单**：pnpm v10 默认禁用 postinstall 脚本。本项目在 `package.json`
   顶层加 `"pnpm": { "onlyBuiltDependencies": [...] }` 显式允许 Prisma 的 engine
   构建脚本。未来批次若出现其他需构建的包（如 sharp、esbuild、swc 变体），
@@ -60,6 +66,9 @@
 - 任何 peer dep error / engine 错误 / install 失败 / 需要新加白名单：立即停下来。
 - 当依赖库实际 API 与 SPEC 代码示例冲突时，允许直接修改 SPEC 正文示例，
   以库的实际 API 为准，并在 v1.1 变更说明里记录修订点。
+- 白名单追加默认策略：全加。除非具体包的 postinstall 有明确安全顾虑，
+  否则以清零 "Ignored build scripts" 警告为目标。每次追加仍需停下来报告，
+  只是决策默认值从"权衡"变为"接受"。
 
 后续任务如实际执行偏离 v1.0 文本，同样在此处追加说明。
 
