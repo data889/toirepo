@@ -1,0 +1,22 @@
+{
+  "common": {
+    "appName": "toirepo",
+    "tagline": "Tokyo public toilet map",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry"
+  },
+  "home": {
+    "welcome": "Welcome to toirepo",
+    "description": "Find free toilets hidden in commercial buildings",
+    "comingSoon": "Map coming soon"
+  },
+  "locale": {
+    "zh-CN": "简体中文",
+    "ja": "日本語",
+    "en": "English"
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  }
+}
