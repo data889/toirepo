@@ -25,6 +25,16 @@
 - 配置 `.npmrc` 启用 `engine-strict=true`，防止 Homebrew 系统 Node 25 污染
 - `.husky/pre-commit` 自动 source nvm，解决本机双 Node 共存下的 hook 环境问题
 
+## T1.2 版本偏差
+
+- **Prisma 5 → 7**：`pnpm add @prisma/client` 默认拉到 7.7.0。决定：接受升级。
+  `postgresqlExtensions` 从 preview 转为稳定，§5.2 schema 的 `previewFeatures` flag
+  可省略。详见 PROJECT_SPEC v1.1 变更说明第 4 条。
+- **pnpm 构建白名单**：pnpm v10 默认禁用 postinstall 脚本。本项目在 `package.json`
+  顶层加 `"pnpm": { "onlyBuiltDependencies": [...] }` 显式允许 Prisma 的 engine
+  构建脚本。未来批次若出现其他需构建的包（如 sharp、esbuild、swc 变体），
+  追加到该数组，并在对应批次 commit 说明。
+
 后续任务如实际执行偏离 v1.0 文本，同样在此处追加说明。
 
 ---

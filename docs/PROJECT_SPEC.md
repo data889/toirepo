@@ -18,6 +18,11 @@
    `postgresql://toirepo:toirepo@localhost:5433/toirepo`。
    生产环境（Supabase）不受影响。
 
+4. **Prisma 版本**：v1.0 写 "Prisma 5"，实施时 `pnpm add` 默认拉到 **7.7.0**。
+   决定：接受升级。v7 的 `postgresqlExtensions` 已从 preview 转为稳定功能，
+   SPEC §5.2 schema 里不再需要 `previewFeatures = ["postgresqlExtensions"]`
+   的 flag。其余 API 对本项目 MVP 范围（无 middleware 使用）高度兼容。
+
 ---
 # toirepo.app · 项目规格文档
 
