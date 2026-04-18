@@ -40,6 +40,7 @@ pnpm dev                        # 启动开发服务器
 | `pnpm lint`                         | ESLint                                             |
 | `pnpm format:check` / `pnpm format` | Prettier 检查 / 自动修复                           |
 | `pnpm smoke:db`                     | 数据库端到端冒烟测试（tsx + pg adapter + trigger） |
+| `pnpm auth:check`                   | 列出 User 表所有记录（Auth 测试后确认入库）        |
 | `pnpm prisma migrate dev`           | 应用新 migration                                   |
 | `pnpm prisma generate`              | 重新生成 Prisma client                             |
 | `pnpm prisma studio`                | 数据库 GUI（http://localhost:5555）                |
@@ -49,6 +50,39 @@ pnpm dev                        # 启动开发服务器
 
 toirepo 使用 **5433**（本机 5432 被其他项目 `planning_db` 占用）。
 生产 Supabase 不受影响。
+
+### Auth 测试（手工）
+
+T2.2 的登录流程需要在浏览器里实际点一遍。`.env.local` 填好 4 个 auth
+secret 后：
+
+1. `pnpm dev` 启动。
+2. 访问 `http://localhost:3000/zh-CN/auth/signin`——应看到
+   "登录 toirepo" 标题、Google 按钮、邮箱输入框。
+3. **Google OAuth 测试**：
+   - 点 "使用 Google 账号登录" → 跳到 Google 授权页 → 选账号 →
+     回到 `http://localhost:3000/zh-CN`（首页）。
+   - 打开 DevTools → Application → Cookies，确认有 `authjs.session-token`。
+   - 跑 `pnpm auth:check`，应看到刚登录的邮箱 + `role=USER`。
+4. **Magic Link 测试**：
+   - 在 signin 页输入一个**已注册 Resend 邮箱**的邮件地址
+     （`onboarding@resend.dev` 测试域名只能发给注册 Resend 的账号）
+     → 点 "发送登录链接"。
+   - 检查邮箱收件箱。
+   - 点邮件里的登录链接 → 自动登录并跳转首页。
+5. **受保护路由测试**：
+   - 登录后访问 `/zh-CN/me`：预期 200（我们还没建 /me 页面所以会 404，
+     但至少不再重定向回 signin，说明 session 有效）。
+   - 做登出（浏览器里手工清 cookie，或访问 `/api/auth/signout`）
+     后再访问 `/zh-CN/me`：应 307 重定向回 signin 并带 callbackUrl。
+
+测试失败的常见原因：
+
+- `redirect_uri_mismatch`：Google Cloud Console 的 OAuth client 里没加
+  `http://localhost:3000/api/auth/callback/google` 到 Authorized
+  redirect URIs。
+- `invalid_key` / Resend 邮件没到：`RESEND_API_KEY` 不对，或发件方
+  `EMAIL_FROM` 未在 Resend dashboard 验证。
 
 ## 参考文档
 

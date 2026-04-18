@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "smoke:db": "tsx --env-file=.env.local scripts/smoke-test-db.ts",
+    "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
     "prepare": "husky"
   },
   "lint-staged": {
