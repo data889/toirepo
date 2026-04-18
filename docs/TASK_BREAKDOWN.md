@@ -48,9 +48,11 @@
 - **白名单追加（批次 8）**：`@sentry/cli`、`core-js`、`protobufjs` 加入
   `onlyBuiltDependencies`。用途：`@sentry/cli` 下载 sentry-cli 二进制（M10
   T10.2 source maps 上传依赖）；`core-js` postinstall 仅打印感谢信，加入是为
-  清零警告噪音；`protobufjs` 是 posthog-js 事件序列化依赖。当前完整列表：
-  @prisma/engines, prisma, @parcel/watcher, @swc/core, @sentry/cli, core-js,
-  protobufjs。
+  清零警告噪音；`protobufjs` 是 posthog-js 事件序列化依赖。
+- **白名单追加（批次 11）**：`esbuild` 加入 `onlyBuiltDependencies`。用途：
+  vitest + tsx 的原生编译器二进制。不批准则测试 runner 和 TS 脚本执行失败或
+  严重变慢。当前完整列表：@prisma/engines, prisma, @parcel/watcher, @swc/core,
+  @sentry/cli, core-js, protobufjs, esbuild。
 - **pnpm 构建白名单**：pnpm v10 默认禁用 postinstall 脚本。本项目在 `package.json`
   顶层加 `"pnpm": { "onlyBuiltDependencies": [...] }` 显式允许 Prisma 的 engine
   构建脚本。未来批次若出现其他需构建的包（如 sharp、esbuild、swc 变体），
