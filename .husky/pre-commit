@@ -1,0 +1,7 @@
+# Ensure correct node version for git hooks (handles Homebrew node vs nvm coexistence)
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+  \. "$HOME/.nvm/nvm.sh"
+  nvm use --silent
+fi
+
+pnpm exec lint-staged
