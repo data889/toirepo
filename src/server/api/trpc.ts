@@ -2,6 +2,8 @@ import { initTRPC, TRPCError } from '@trpc/server'
 import { ZodError } from 'zod'
 import superjson from 'superjson'
 import type { TRPCContext } from '../trpc-context'
+import { enforceLimit, extractIp } from '../ratelimit/check'
+import type { LimitKey } from '../ratelimit/limits'
 
 const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
@@ -43,3 +45,33 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   }
   return next({ ctx })
 })
+
+// Ratelimit middleware factories (T2.4). Call at the procedure builder
+// level rather than on each mutation so the limit key is part of the
+// route definition, not scattered inside the handler body.
+//
+// Example usage in later milestones:
+//   submit: withUserRateLimit('toilet:submit:hourly')
+//     .input(toiletSubmitSchema)
+//     .mutation(...)
+//
+//   submitOwnerDispute: withIpRateLimit('dispute:submit')
+//     .input(ownerDisputeSchema)
+//     .mutation(...)
+
+// For operations that require a signed-in user: bucket by userId.
+export function withUserRateLimit(key: LimitKey) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    await enforceLimit(key, { kind: 'user', userId: ctx.user.id })
+    return next({ ctx })
+  })
+}
+
+// For public operations that must still be throttled: bucket by IP.
+export function withIpRateLimit(key: LimitKey) {
+  return publicProcedure.use(async ({ ctx, next }) => {
+    const ip = extractIp(ctx.headers)
+    await enforceLimit(key, { kind: 'ip', ip })
+    return next({ ctx })
+  })
+}
