@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "smoke:db": "tsx --env-file=.env.local scripts/smoke-test-db.ts",
     "smoke:ratelimit": "tsx --env-file=.env.local scripts/smoke-test-ratelimit.ts",
+    "pmtiles:install": "bash scripts/install-pmtiles.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
