@@ -41,6 +41,13 @@
   v3 止步 Next 15。T1.4 正文为抽象引用（"按 next-intl App Router 教程配置"），
   无 v3 特定代码示例需要改；仅提醒实施 T1.4 时参考 v4 教程。详见 PROJECT_SPEC
   v1.1 变更说明第 7 条。
+- **@hookform/resolvers 3 → 5**（+2 major，下游库）：默认拉到 5.2.2。
+  决定：接受升级。`zodResolver` 的 import 模式（`@hookform/resolvers/zod`）
+  跨 v3/v4/v5 稳定，v5 主要是对 Zod 4 的 TS 类型优化。记录在批次 9 commit
+  996d782 body 中。
+- **@trpc/next 新增**：SPEC §3.1 只列了 `@trpc/server/client/react-query`，
+  T1.2 实际多装了 `@trpc/next` 11.16.0（Next.js 专用 helper，与其他 tRPC 包
+  同版本）。非版本偏差，只是补全 tRPC Next.js 集成必需的姐妹包。
 - **白名单追加（批次 5）**：`@parcel/watcher` + `@swc/core` 加入
   `onlyBuiltDependencies`。用途：next-intl 的 transitive deps，负责文件监听和
   JS/TS 编译的原生 binding。不批准 postinstall 会 fallback 到 JS/WASM，dev
