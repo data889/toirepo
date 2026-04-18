@@ -37,6 +37,14 @@
   决定：接受升级。T3.4 步骤 2 的 import 写法同步修订为 `react-map-gl` + `mapLib`
   prop 注入 maplibre-gl（v8 已移除 `react-map-gl/maplibre` 子路径）。详见
   PROJECT_SPEC v1.1 变更说明第 6 条。
+- **next-intl 3 → 4**：默认拉到 4.9.1。决定：接受升级。v4 官方适配 Next.js 16，
+  v3 止步 Next 15。T1.4 正文为抽象引用（"按 next-intl App Router 教程配置"），
+  无 v3 特定代码示例需要改；仅提醒实施 T1.4 时参考 v4 教程。详见 PROJECT_SPEC
+  v1.1 变更说明第 7 条。
+- **白名单追加（批次 5）**：`@parcel/watcher` + `@swc/core` 加入
+  `onlyBuiltDependencies`。用途：next-intl 的 transitive deps，负责文件监听和
+  JS/TS 编译的原生 binding。不批准 postinstall 会 fallback 到 JS/WASM，dev
+  hot-reload 与 build 速度显著下降。
 - **pnpm 构建白名单**：pnpm v10 默认禁用 postinstall 脚本。本项目在 `package.json`
   顶层加 `"pnpm": { "onlyBuiltDependencies": [...] }` 显式允许 Prisma 的 engine
   构建脚本。未来批次若出现其他需构建的包（如 sharp、esbuild、swc 变体），

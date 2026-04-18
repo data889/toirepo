@@ -36,6 +36,12 @@
    `mapLib` prop 在运行时注入 maplibre-gl）。MapLibre v5 对本项目
    从零设计的 `toirepo-paper.json` 样式无实质影响。
 
+7. **next-intl 版本**：v1.0 写 "next-intl 3"，实施时 `pnpm add` 默认拉到
+   **4.9.1**。决定：接受升级。v4 官方适配 Next.js 16（v3 仅支持到 Next 15），
+   这本身即是升级的硬理由。T1.4 的路径前缀策略（/zh-CN / /ja / /en，默认
+   /zh-CN）在 v4 完全保留；实施 T1.4 时请按 **v4 App Router 教程**配置
+   （`createNextIntlPlugin` + `createMiddleware` 新签名），不要参考 v3 教程。
+
 ---
 # toirepo.app · 项目规格文档
 
