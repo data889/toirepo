@@ -19,9 +19,19 @@
    生产环境（Supabase）不受影响。
 
 4. **Prisma 版本**：v1.0 写 "Prisma 5"，实施时 `pnpm add` 默认拉到 **7.7.0**。
-   决定：接受升级。v7 的 `postgresqlExtensions` 已从 preview 转为稳定功能，
-   SPEC §5.2 schema 里不再需要 `previewFeatures = ["postgresqlExtensions"]`
-   的 flag。其余 API 对本项目 MVP 范围（无 middleware 使用）高度兼容。
+   决定：接受升级。其余 API 对本项目 MVP 范围（无 middleware 使用）高度兼容。
+
+   **更正（2026-04-19）**：此前 v1.1 文档写"v7 的 postgresqlExtensions 已稳定"
+   不准确——该 feature 在 Prisma 7.x 仍为 preview。本项目不启用该 preview，
+   改为在 init migration SQL 里显式 `CREATE EXTENSION IF NOT EXISTS postgis`
+   管理扩展，schema `datasource` 块不含 `extensions` 字段。
+
+   **Prisma 7 adapter-mandatory**：v7.0 起禁止在 `schema.prisma` 的 datasource 块
+   里写 `url` / `directUrl`，连接由 `prisma.config.ts` 提供（且 CLI 需要
+   `datasource.url` 做 shadow-db / schema diff），运行时 `PrismaClient`
+   构造也需传 adapter。本项目使用 `@prisma/adapter-pg`（基于 `pg` 驱动）
+   连接本地 Docker PostGIS 与生产 Supabase。SPEC §5.2 的 schema 内容不变，
+   仅 datasource 语法层面调整。
 
 5. **Zod 版本**：v1.0 写 "Zod 3"，实施时 `pnpm add` 默认拉到 **4.3.6**。
    决定：接受升级。v4 与本项目用到的 API 子集（`.parse`、`.safeParse`、

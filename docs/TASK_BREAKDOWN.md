@@ -52,6 +52,10 @@
   脚手架预装 `^20`。T1.2 总验收时发现并升级到 22.19.17，对齐 Node 22 运行时
   类型（v22 新增的 API 如 `process.loadEnvFile`、原生 `WebSocket` 等在代码
   里可获得类型提示）。
+- **T2.1 新增包 · Prisma 7 adapter 模式**：`@prisma/adapter-pg` 7.7.0、
+  `pg` 8.20.0、`@types/pg` 8.20.0（dev）、`dotenv` 17.4.2（dev，供
+  `prisma.config.ts` 使用）。非 SPEC §3.1 原始列表。Prisma 7 强制 adapter
+  模式连接数据库，此改动在 PROJECT_SPEC v1.1 第 4 条有详细说明。
 - **lint-staged 15 → 16**：T1.1 F 子步骤 `pnpm add -D lint-staged` 未带版本
   号，拉到 v16.4.0，超出 SPEC T1.2 期望的 `^15`。v15 → v16 主要是移除 Node
   18 支持与 CLI flag 重命名；本项目通过 `package.json` 的 `lint-staged` config
