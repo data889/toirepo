@@ -6,6 +6,29 @@
 
 ---
 
+# TASK_BREAKDOWN v1.1 变更说明（2026-04-18）
+
+## T1.1 扩展
+
+原 v1.0 的 5 个子步骤扩展为 7 个，补充了工程实践项：
+
+- 新增：v1.1 变更说明写入 SPEC、CLAUDE.md 填充、.nvmrc + engines + engine-strict、
+  .env.local.example、.gitignore 补全
+- 原步骤"pnpm create next-app"已在任务外由发起人执行
+- 实际执行序列：A(SPEC v1.1) → B(CLAUDE.md) → C(Prettier) → D(Node版本) →
+  E(Docker) → F(Husky) → G(.gitignore + env example) → H(本说明)
+- 验证清单从 4 条扩展为 9 条（见 T1.1 末尾）
+
+## 其他本地实施决定
+
+- PostgreSQL 端口改用 5433（本机 5432 被 planning_db 占用）
+- 配置 `.npmrc` 启用 `engine-strict=true`，防止 Homebrew 系统 Node 25 污染
+- `.husky/pre-commit` 自动 source nvm，解决本机双 Node 共存下的 hook 环境问题
+
+后续任务如实际执行偏离 v1.0 文本，同样在此处追加说明。
+
+---
+
 ## 里程碑总览
 
 | 里程碑 | 目标 | 任务数 | 预计工时 |
@@ -31,18 +54,28 @@
 
 **目标**：创建 Next.js 15 项目，配置 TypeScript、ESLint、Prettier。
 
-**步骤**：
-1. `pnpm create next-app@latest toirepo --ts --tailwind --app --eslint --src-dir --import-alias "@/*"`
-2. 安装 Prettier + eslint-config-prettier + prettier-plugin-tailwindcss
-3. 配置 `.prettierrc`：无分号、单引号、tabWidth=2、printWidth=100
-4. 创建 `docker-compose.yml`（PostgreSQL 16 + PostGIS 3.4）
-5. 配置 Git hooks：`husky` + `lint-staged`
+**步骤**（v1.1 实际执行）：
 
-**验证**：
-- [ ] `pnpm dev` 能启动开发服务器
-- [ ] `pnpm lint` 通过
-- [ ] `docker compose up -d` 能启动数据库
-- [ ] 可通过 `psql` 连接到数据库并验证 PostGIS 扩展已安装
+A. 在 `docs/PROJECT_SPEC.md` 顶部写入 v1.1 变更说明（Next 16 / Tailwind v4 / 端口 5433）— `b00f41a`
+B. 填充 `CLAUDE.md`（项目级 AI 指令、红线、commit 规范）— `4666e08`
+C. 配置 Prettier（`prettier@3` + `prettier-plugin-tailwindcss`，`.prettierrc`、`.prettierignore`、format/format:check/typecheck scripts）— `bd96dfe`
+D. 锁定 Node 版本（`.nvmrc=22`、`package.json` engines 字段、`.npmrc` engine-strict）— `efef019`
+E. Docker Compose（`postgis/postgis:16-3.4-alpine`，端口 5433:5432，容器名 toirepo_postgres，命名 volume toirepo_pg_data，healthcheck）— `609887b`
+F. Husky v9 + lint-staged（`.husky/pre-commit` 自动 source nvm，lint-staged 对 ts/tsx/json/md/yaml/css 分规则）— `eb82ee3`
+G. `.gitignore` 补全（env 精准三条规则、macOS、IDE、logs）+ 加入 `.env.local.example` — `c5e7c1d`
+H. 本说明同步（此 commit）
+
+**验证**（v1.1 扩展为 9 项）：
+
+- [ ] `node -v` 输出 v22.22.2（需先 `nvm use`）
+- [ ] `pnpm -v` 输出 10.33.0
+- [ ] `pnpm typecheck` 无错误
+- [ ] `pnpm lint` 无警告无错误
+- [ ] `pnpm format:check` 全部通过
+- [ ] `docker compose ps` 显示 toirepo_postgres 为 healthy
+- [ ] `docker exec toirepo_postgres psql -U toirepo -d toirepo -c "SELECT PostGIS_Version();"` 返回 3.4+
+- [ ] `git log --oneline` 显示 T1.1 的 A–H commit 链完整
+- [ ] 制造一个 TSX 文件测试 pre-commit hook 在 Node 22 下跑通 eslint+prettier（测试后立即 `git reset --hard HEAD~1` 回滚）
 
 ---
 
