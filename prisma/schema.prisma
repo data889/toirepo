@@ -106,7 +106,11 @@ model Toilet {
   id   String @id @default(cuid())
   slug String @unique
 
-  location  Unsupported("geography(Point, 4326)")
+  // Optional at Prisma schema level so `db.toilet.create()` works without
+  // requiring a client-provided location; the DB column is still NOT NULL
+  // and is populated by the BEFORE INSERT trigger from latitude/longitude.
+  // Intentional schema ↔ DB drift; see v1.1 change note #8.
+  location  Unsupported("geography(Point, 4326)")?
   latitude  Float
   longitude Float
 

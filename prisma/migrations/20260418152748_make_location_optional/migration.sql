@@ -1,0 +1,24 @@
+-- Intentional no-op migration.
+--
+-- The Prisma schema change was purely at the client-type level: Toilet.location
+-- is marked optional (Unsupported(...)?) so that `db.toilet.create()` works
+-- without a caller-provided location. The DB column is still NOT NULL and is
+-- populated by the BEFORE INSERT trigger on latitude/longitude.
+--
+-- Prisma's diff engine generated two statements it thought were needed — both
+-- have been removed and are replaced by this comment:
+--
+--   DROP INDEX "toilet_location_idx";
+--     The GIST index was manually created in migration
+--     20260419001746_add_spatial_index_and_trigger because Prisma's schema
+--     cannot express spatial indexes on Unsupported columns. Prisma's diff
+--     does not know about it and wants to drop it. Suppressed.
+--
+--   ALTER TABLE "Toilet" ALTER COLUMN "location" DROP NOT NULL;
+--     The DB column must stay NOT NULL so that data integrity is enforced
+--     by Postgres even if the trigger is ever disabled. The optionality is
+--     Prisma-schema-level only. Suppressed.
+--
+-- See PROJECT_SPEC.md v1.1 change note #8 for the full rationale.
+-- `prisma migrate status` may report drift on these two points; that drift is
+-- intentional and must not be "fixed".

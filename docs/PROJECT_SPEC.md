@@ -52,6 +52,14 @@
    /zh-CN）在 v4 完全保留；实施 T1.4 时请按 **v4 App Router 教程**配置
    （`createNextIntlPlugin` + `createMiddleware` 新签名），不要参考 v3 教程。
 
+8. **Prisma 7 对 Unsupported 非可选字段的限制**：SPEC §5.2 原把 `Toilet.location`
+   写为 `Unsupported("geography(Point, 4326)")`（非可选）。Prisma 7 运行时会
+   拒绝对含必填 Unsupported 字段的 model 执行 `db.model.create()`，
+   即使该字段由 DB 触发器填充。决定：将 `location` 改为 optional
+   （`Unsupported(...)?`）。DB 层仍是 NOT NULL + trigger，数据完整性不变；
+   Prisma schema 层准确反映"应用不写此字段"的意图。SPEC §5.2 Toilet model
+   定义已同步修订。这是 Prisma 社区 PostGIS 标准模式。
+
 ---
 # toirepo.app · 项目规格文档
 
@@ -338,7 +346,7 @@ model Toilet {
   slug        String      @unique // 用于 SEO-friendly URL，如 shibuya-starbucks-q-front-3f
 
   // 地理信息
-  location    Unsupported("geography(Point, 4326)") // PostGIS 字段
+  location    Unsupported("geography(Point, 4326)")? // PostGIS 字段；schema 层 optional，DB 层 NOT NULL + trigger。见 v1.1 #8
   latitude    Float       // 冗余存储，便于 API 响应
   longitude   Float
 
