@@ -1,13 +1,337 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// prisma/schema.prisma
+// Full SPEC §5.2 schema.
+// Prisma 7: connection URLs live in prisma.config.ts (not datasource here),
+// and PostGIS is created/managed via migration SQL rather than Prisma's
+// `extensions` preview feature.
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
+  // Prisma 7: url / directUrl live in prisma.config.ts, not here.
+  // PrismaClient is constructed with a `pg` adapter; migrations run via
+  // prisma.config.ts's migrations.adapter.
+  //
+  // PostGIS extension is NOT declared here (`extensions = [postgis]` would
+  // require the `postgresqlExtensions` preview feature, still preview in
+  // v7.x). The extension is created explicitly in the init migration SQL
+  // (CREATE EXTENSION IF NOT EXISTS postgis) which works across fresh
+  // Postgres, Supabase, and any compatible provider.
   provider = "postgresql"
+}
+
+// ============================================================
+// 用户与认证
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  locale        String    @default("zh-CN")
+  role          UserRole  @default(USER)
+
+  trustLevel          Int @default(0)
+  approvedSubmissions Int @default(0)
+  rejectedSubmissions Int @default(0)
+
+  bannedAt  DateTime?
+  banReason String?
+
+  accounts      Account[]
+  sessions      Session[]
+  toilets       Toilet[]       @relation("SubmittedBy")
+  photos        Photo[]
+  reviews       Review[]
+  confirmations Confirmation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  USER
+  TRUSTED_USER
+  MODERATOR
+  SENIOR_MODERATOR
+  ADMIN
+}
+
+// Auth.js 标准表（PrismaAdapter 要求）
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// 厕所核心实体
+// ============================================================
+
+model Toilet {
+  id   String @id @default(cuid())
+  slug String @unique
+
+  location  Unsupported("geography(Point, 4326)")
+  latitude  Float
+  longitude Float
+
+  type ToiletType
+
+  name     Json
+  address  Json
+  building Json?
+  floor    String?
+
+  stationGateSide StationGateSide?
+
+  isFree           Boolean @default(true)
+  requiresPurchase Boolean @default(false)
+  requiresKey      Boolean @default(false)
+  is24Hours        Boolean @default(false)
+
+  hasAccessible    Boolean @default(false)
+  hasBabyChanging  Boolean @default(false)
+  hasKidsToilet    Boolean @default(false)
+  hasWashlet       Boolean @default(false)
+  hasGenderNeutral Boolean @default(false)
+  hasFamilyRoom    Boolean @default(false)
+
+  stallCount StallCount?
+
+  openingHours Json?
+
+  accessNote Json?
+
+  source        ToiletSource @default(USER_SUBMISSION)
+  osmId         String?      @unique
+  submittedById String?
+  submittedBy   User?        @relation("SubmittedBy", fields: [submittedById], references: [id])
+
+  status      ToiletStatus @default(PENDING)
+  publishedAt DateTime?
+
+  cleanliness     Float?
+  reviewCount     Int       @default(0)
+  photoCount      Int       @default(0)
+  lastConfirmedAt DateTime?
+
+  photos        Photo[]
+  reviews       Review[]
+  confirmations Confirmation[]
+  auditLogs     AuditLog[]
+  disputes      OwnerDispute[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, status])
+  @@index([status, publishedAt])
+  @@index([osmId])
+}
+
+enum ToiletStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+  ARCHIVED
+}
+
+enum ToiletSource {
+  OSM_IMPORT
+  USER_SUBMISSION
+  ADMIN_CREATED
+}
+
+enum ToiletType {
+  PUBLIC
+  MALL
+  KONBINI
+  PURCHASE
+}
+
+enum StationGateSide {
+  INSIDE
+  OUTSIDE
+  BOTH
+}
+
+enum StallCount {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+// ============================================================
+// 照片
+// ============================================================
+
+model Photo {
+  id       String @id @default(cuid())
+  toiletId String
+  toilet   Toilet @relation(fields: [toiletId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+
+  url          String
+  thumbnailUrl String
+  width        Int
+  height       Int
+  sizeBytes    Int
+
+  category PhotoCategory @default(ENTRANCE)
+
+  status            PhotoStatus @default(PENDING)
+  aiPrescreenResult Json?
+  rejectedReason    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([toiletId, status])
+}
+
+enum PhotoCategory {
+  ENTRANCE
+  SIGNAGE
+  EXTERIOR
+  BUILDING
+}
+
+enum PhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================================
+// 评论
+// ============================================================
+
+model Review {
+  id       String @id @default(cuid())
+  toiletId String
+  toilet   Toilet @relation(fields: [toiletId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+
+  cleanliness    Int
+  comment        Json?
+  originalLocale String
+
+  status         ReviewStatus @default(PENDING)
+  rejectedReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([toiletId, userId])
+  @@index([toiletId, status])
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================================
+// 确认（"这里还能用"）
+// ============================================================
+
+model Confirmation {
+  id             String  @id @default(cuid())
+  toiletId       String
+  toilet         Toilet  @relation(fields: [toiletId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User    @relation(fields: [userId], references: [id])
+  stillAvailable Boolean
+  note           String?
+
+  createdAt DateTime @default(now())
+
+  @@index([toiletId])
+  @@index([userId, createdAt])
+}
+
+// ============================================================
+// 店家申诉
+// ============================================================
+
+model OwnerDispute {
+  id       String @id @default(cuid())
+  toiletId String
+  toilet   Toilet @relation(fields: [toiletId], references: [id])
+
+  claimerEmail String
+  claimerName  String
+  claimerRole  String
+  reason       String   @db.Text
+  evidenceUrls String[]
+
+  status       DisputeStatus @default(PENDING)
+  resolvedAt   DateTime?
+  resolvedNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum DisputeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_INFO
+}
+
+// ============================================================
+// 审计日志
+// ============================================================
+
+model AuditLog {
+  id       String  @id @default(cuid())
+  toiletId String?
+  toilet   Toilet? @relation(fields: [toiletId], references: [id])
+  actorId  String?
+  action   String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([toiletId])
+  @@index([actorId])
 }
