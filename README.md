@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# toirepo.app
 
-## Getting Started
+东京（未来全球）公共厕所众包地图 — 专门标注"官方地图上没有但实际可用"的免费厕所。
 
-First, run the development server:
+## 本地开发
+
+### 前置要求
+
+- Node 22 LTS（`.nvmrc` 已声明，`nvm use` 自动切换）
+- pnpm 10+（项目 `.npmrc` 启用 `engine-strict`，不符版本会被拒绝）
+- Docker Desktop 或 OrbStack
+
+### 启动
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+nvm use
+pnpm install
+# 首次：复制 env 模板（两份文件的 DATABASE_URL 必须一致）
+cp .env.local.example .env.local
+cp .env.local.example .env      # Prisma CLI 读 .env；应用读 .env.local
+docker compose up -d            # 启动 PostgreSQL 16 + PostGIS 3.4（端口 5433）
+pnpm prisma migrate dev         # 应用数据库 migration
+pnpm prisma generate            # 生成 Prisma client
+pnpm dev                        # 启动开发服务器
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 http://localhost:3000/zh-CN/
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> `.env` 与 `.env.local` 都被 `.gitignore` 忽略，不会入库。两者内容应保持一致：
+> Prisma CLI（`prisma.config.ts` 里 `import 'dotenv/config'`）读 `.env`，
+> 应用运行时（Next.js 默认行为）读 `.env.local`。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 常用命令
 
-## Learn More
+| 命令                                | 用途                                               |
+| ----------------------------------- | -------------------------------------------------- |
+| `pnpm dev`                          | 启动开发服务器（Turbopack）                        |
+| `pnpm build` / `pnpm start`         | 生产构建与启动                                     |
+| `pnpm typecheck`                    | `tsc --noEmit` 类型检查                            |
+| `pnpm lint`                         | ESLint                                             |
+| `pnpm format:check` / `pnpm format` | Prettier 检查 / 自动修复                           |
+| `pnpm smoke:db`                     | 数据库端到端冒烟测试（tsx + pg adapter + trigger） |
+| `pnpm prisma migrate dev`           | 应用新 migration                                   |
+| `pnpm prisma generate`              | 重新生成 Prisma client                             |
+| `pnpm prisma studio`                | 数据库 GUI（http://localhost:5555）                |
+| `docker compose up -d` / `down`     | PostgreSQL 容器启停                                |
 
-To learn more about Next.js, take a look at the following resources:
+### 本机端口
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+toirepo 使用 **5433**（本机 5432 被其他项目 `planning_db` 占用）。
+生产 Supabase 不受影响。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 参考文档
 
-## Deploy on Vercel
+- `CLAUDE.md` — 项目级 AI 执行指令（所有 Claude Code session 必读）
+- `docs/PROJECT_SPEC.md` — 规格总纲（v1.1，含 v1.0→v1.1 偏差说明）
+- `docs/TASK_BREAKDOWN.md` — 任务拆解（v1.1，按 M1→M11 顺序执行）
+- `docs/COLORS.md` — 配色快查表（SPEC §4.2 落地）
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 技术栈
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 · Tailwind v4 · Prisma 7 (pg adapter) · PostgreSQL 16 + PostGIS · next-auth v5 · tRPC 11 · next-intl v4 · MapLibre GL 5 · shadcn/ui · Zod 4

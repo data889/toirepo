@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "smoke:db": "tsx --env-file=.env.local scripts/smoke-test-db.ts",
     "prepare": "husky"
   },
   "lint-staged": {

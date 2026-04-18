@@ -1,5 +1,7 @@
-import { config } from 'dotenv'
-config({ path: '.env.local' })
+// Run with: pnpm tsx --env-file=.env.local scripts/smoke-test-db.ts
+// ES module imports are hoisted, so dotenv-at-top-of-file loses the race
+// with `db.ts`'s module-level client construction. --env-file is Node's
+// native env loader and runs before any user code executes.
 
 import { db } from '../src/server/db'
 
