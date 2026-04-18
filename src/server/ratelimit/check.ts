@@ -1,4 +1,5 @@
-import 'server-only'
+// Server-only by directory convention (src/server/). See redis.ts header
+// comment for why no 'server-only' import marker.
 import { TRPCError } from '@trpc/server'
 import { getLimiter, type LimitKey } from './limits'
 

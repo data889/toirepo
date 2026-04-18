@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "smoke:db": "tsx --env-file=.env.local scripts/smoke-test-db.ts",
+    "smoke:ratelimit": "tsx --env-file=.env.local scripts/smoke-test-ratelimit.ts",
     "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
     "prepare": "husky"
   },

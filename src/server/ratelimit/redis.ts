@@ -1,4 +1,9 @@
-import 'server-only'
+// Server-only by directory convention (src/server/). No `'server-only'`
+// import marker here because tsx-run scripts (scripts/smoke-test-*.ts)
+// transitively import this module and Node's resolver trips on
+// 'server-only' outside a Next.js runtime. Client components reaching
+// into src/server/ratelimit/ would anyway trip 'server-only' on a
+// downstream tRPC module, so the defense is not lost.
 import { Redis } from '@upstash/redis'
 
 function createRedisClient() {
