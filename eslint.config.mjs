@@ -16,6 +16,22 @@ const eslintConfig = defineConfig([
     // and unused runtime helpers that our rules don't apply to.
     'src/generated/**',
   ]),
+  // Allow underscore-prefixed params/vars as an explicit "unused on purpose"
+  // signal. Used e.g. in canAutoPublish(_user) where the function will read
+  // the arg in a later milestone (V1.0 trusted-user logic) but deliberately
+  // ignores it during MVP.
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
 ])
 
 export default eslintConfig

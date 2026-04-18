@@ -43,32 +43,75 @@ export function isBanned(user: AuthUser): boolean {
 // Dynamic checks (filled in substep C)
 // -----------------------------------------------------------
 
-export function canSubmitToilet(_user: AuthUser | null | undefined): PermissionResult {
-  throw new Error('TODO: T2.5 C')
+export function canSubmitToilet(user: AuthUser | null | undefined): PermissionResult {
+  if (!user) return { ok: false, reason: 'permission.mustLogin' }
+  if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (!user.emailVerified) {
+    return { ok: false, reason: 'permission.needsEmailVerification' }
+  }
+  return { ok: true }
 }
 
 export async function canUploadPhoto(
-  _user: AuthUser | null | undefined,
-  _toiletId: string,
-  _db: PrismaClient,
+  user: AuthUser | null | undefined,
+  toiletId: string,
+  db: PrismaClient,
 ): Promise<PermissionResult> {
-  throw new Error('TODO: T2.5 C')
+  if (!user) return { ok: false, reason: 'permission.mustLogin' }
+  if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (!(await toiletExistsAndApproved(toiletId, db))) {
+    return { ok: false, reason: 'permission.toiletNotFound' }
+  }
+  return { ok: true }
 }
 
 export async function canConfirmToilet(
-  _user: AuthUser | null | undefined,
-  _toiletId: string,
-  _db: PrismaClient,
+  user: AuthUser | null | undefined,
+  toiletId: string,
+  db: PrismaClient,
 ): Promise<PermissionResult> {
-  throw new Error('TODO: T2.5 C')
+  if (!user) return { ok: false, reason: 'permission.mustLogin' }
+  if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (!(await toiletExistsAndApproved(toiletId, db))) {
+    return { ok: false, reason: 'permission.toiletNotFound' }
+  }
+
+  // SPEC §7.4: one confirmation per user per toilet per 30 days.
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const recent = await db.confirmation.count({
+    where: {
+      userId: user.id,
+      toiletId,
+      createdAt: { gte: thirtyDaysAgo },
+    },
+  })
+  if (recent > 0) {
+    return { ok: false, reason: 'permission.confirmCooldown' }
+  }
+  return { ok: true }
 }
 
 export async function canReviewToilet(
-  _user: AuthUser | null | undefined,
-  _toiletId: string,
-  _db: PrismaClient,
+  user: AuthUser | null | undefined,
+  toiletId: string,
+  db: PrismaClient,
 ): Promise<PermissionResult> {
-  throw new Error('TODO: T2.5 C')
+  if (!user) return { ok: false, reason: 'permission.mustLogin' }
+  if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (!(await toiletExistsAndApproved(toiletId, db))) {
+    return { ok: false, reason: 'permission.toiletNotFound' }
+  }
+
+  // SPEC §5.2 Review.@@unique([toiletId, userId]) enforces one review per
+  // user-toilet pair at DB level. This helper answers "can the user CREATE
+  // a new review?" — editing an existing review is a separate code path.
+  const existing = await db.review.count({
+    where: { userId: user.id, toiletId },
+  })
+  if (existing > 0) {
+    return { ok: false, reason: 'permission.alreadyReviewed' }
+  }
+  return { ok: true }
 }
 
 // -----------------------------------------------------------
@@ -76,10 +119,13 @@ export async function canReviewToilet(
 // -----------------------------------------------------------
 
 export async function toiletExistsAndApproved(
-  _toiletId: string,
-  _db: PrismaClient,
+  toiletId: string,
+  db: PrismaClient,
 ): Promise<boolean> {
-  throw new Error('TODO: T2.5 C')
+  const count = await db.toilet.count({
+    where: { id: toiletId, status: 'APPROVED' },
+  })
+  return count > 0
 }
 
 // Keep UserRole re-exported for consumers that want the enum without a
