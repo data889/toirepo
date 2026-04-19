@@ -159,7 +159,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
                   'toilet-purchase',
                   'toilet-public',
                 ],
-                'icon-size': 0.75,
+                'icon-size': 1,
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
               },

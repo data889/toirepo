@@ -26,7 +26,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className="h-full antialiased">
-      <body className="flex min-h-full flex-col font-sans">
+      <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
         <NextIntlClientProvider>
           <TRPCProvider>{children}</TRPCProvider>
         </NextIntlClientProvider>
