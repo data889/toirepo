@@ -65,3 +65,7 @@ data/
 # Background-script logs and PID files (long-running jobs like
 # pmtiles download via nohup).
 logs/
+
+# Local-only previews (e.g. _icons-preview.html under T3.3) — these are
+# Ming's eyeball checks, never deployed.
+/_*.html
