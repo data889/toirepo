@@ -14,6 +14,7 @@ Hex 值以 `globals.css` 为唯一真相源，本文件仅为查询便捷。
 | --color-rail         | `#C4A8A0` | `bg-rail` / `border-rail`          | 铁路虚线                   |
 | --color-map-label    | `#8A8578` | `text-map-label`                   | 地图文字标注               |
 | --color-park         | `#E8EBE0` | `bg-park`                          | 公园/绿地                  |
+| --color-building     | `#F5F2EA` | `bg-building`                      | 建筑填充（比纸色略深，zoom 14+ 才 fade-in）|
 
 ## 厕所图标（§4.2）
 

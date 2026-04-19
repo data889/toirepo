@@ -61,6 +61,7 @@
   --color-rail: #c4a8a0;
   --color-map-label: #8a8578;
   --color-park: #e8ebe0;
+  --color-building: #f5f2ea; /* T3.2 — building fill, slightly darker than paper */
 
   /* Toilet icons — §4.2 */
   --color-toilet-public: #d4573a; /* circle · P */
