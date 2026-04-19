@@ -4,15 +4,31 @@ import { MapCanvas } from '@/components/map/MapCanvas'
 
 export default function HomePage() {
   const t = useTranslations()
-
   return (
-    <main className="bg-paper text-ink-primary flex min-h-screen flex-col">
+    <main
+      className="bg-paper text-ink-primary"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
       <header className="flex items-center justify-between px-6 py-4">
         <h1 className="text-xl font-medium">{t('common.appName')}</h1>
         <LocaleSwitcher />
       </header>
-      <section className="relative flex-1">
-        <MapCanvas className="absolute inset-0" />
+      <section style={{ flex: 1, position: 'relative' }}>
+        <MapCanvas
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
       </section>
     </main>
   )

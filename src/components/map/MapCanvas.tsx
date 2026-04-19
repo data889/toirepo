@@ -18,10 +18,11 @@ const MAX_BOUNDS: [[number, number], [number, number]] = [
 ]
 
 export interface MapCanvasProps {
+  style?: React.CSSProperties
   className?: string
 }
 
-export function MapCanvas({ className }: MapCanvasProps) {
+export function MapCanvas({ className, style }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -109,5 +110,5 @@ export function MapCanvas({ className }: MapCanvasProps) {
     )
   }
 
-  return <div ref={containerRef} className={className} />
+  return <div ref={containerRef} className={className} style={style} />
 }
