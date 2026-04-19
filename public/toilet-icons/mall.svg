@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="toilet marker (mall)">
+  <g fill="#2C6B8F" stroke="#FDFCF9" stroke-width="2.5" stroke-linejoin="round">
+    <rect x="3" y="3" width="26" height="26" rx="4" ry="4" />
+  </g>
+  <text x="16" y="21" text-anchor="middle"
+        font-family='Inter, system-ui, -apple-system, "Segoe UI", sans-serif'
+        font-size="14" font-weight="500"
+        fill="#FDFCF9">M</text>
+</svg>

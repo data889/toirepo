@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
+    "icons:generate": "tsx scripts/generate-toilet-icons.ts",
     "prepare": "husky"
   },
   "lint-staged": {

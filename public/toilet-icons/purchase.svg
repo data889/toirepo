@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="toilet marker (purchase)">
+  <g fill="#B8860B" stroke="#FDFCF9" stroke-width="2.5" stroke-linejoin="round">
+    <polygon points="5,6 27,6 29,20 16,29 3,20" />
+  </g>
+  <text x="16" y="21" text-anchor="middle"
+        font-family='Inter, system-ui, -apple-system, "Segoe UI", sans-serif'
+        font-size="14" font-weight="500"
+        fill="#FDFCF9">¥</text>
+</svg>
