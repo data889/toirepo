@@ -66,6 +66,13 @@
    runtime（旧 middleware 默认 edge），不再需要手工 `export const runtime = 'nodejs'`
    来让 Prisma 等 Node-only 依赖工作。
 
+10. **地图 rail 视觉简化**：v1.0 §4.5 要求"地铁线路不用鲜艳色，统一用深海青
+    `#2C6B8F` 单色细线"。T3.2 实施时发现 Protomaps basemaps v4 的
+    `roads.kind=rail` 不区分地铁与国铁（需要查 `kind_detail` 子字段才能区分），
+    MVP 阶段简化为所有 rail 统一用 `#C4A8A0` 赭红虚线（与 boundaries 同色，
+    与草图示意稿一致）。§4.5 正文已同步修订。未来需要区分地铁/国铁时，重写
+    `roads.kind=rail` 的 filter 为基于 `kind_detail in [subway, tram]` 的分层。
+
 ---
 # toirepo.app · 项目规格文档
 
@@ -261,7 +268,7 @@ pnpm dev
 具体视觉效果参见项目启动时与用户的 Claude 对话（2026-04-18）中生成的示意稿。关键原则：
 - 底图几乎不显眼，线条带轻微"手绘不完美"感（可通过 MapLibre 样式的 line-opacity 和 line-offset 实现）
 - 水域不用蓝色（重要！这是去 Google Maps 化的关键之一）
-- 地铁线路不用鲜艳色，统一用深海青 `#2C6B8F` 单色细线
+- 铁路（含地铁与国铁）统一用 `#C4A8A0` 赭红虚线，不区分类型、不用彩色（v1.1 #10）
 - 公园用极淡苔绿填充，不标注具体树木
 
 ### 4.6 暗色模式

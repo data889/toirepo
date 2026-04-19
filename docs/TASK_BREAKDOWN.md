@@ -63,6 +63,8 @@
   Next.js 不 bundle Prisma runtime。
 - **T2.2 `middleware.ts` → `proxy.ts`**：Next.js 16 改了文件约定名，详见
   PROJECT_SPEC v1.1 第 9 条。
+- **T3.2 rail 视觉简化**：SPEC §4.5 原指定地铁深海青线，T3.2 实施时简化为所有
+  rail 统一赭红虚线（不区分地铁/国铁）。详见 PROJECT_SPEC v1.1 第 10 条。
 - **lint-staged 15 → 16**：T1.1 F 子步骤 `pnpm add -D lint-staged` 未带版本
   号，拉到 v16.4.0，超出 SPEC T1.2 期望的 `^15`。v15 → v16 主要是移除 Node
   18 支持与 CLI flag 重命名；本项目通过 `package.json` 的 `lint-staged` config
