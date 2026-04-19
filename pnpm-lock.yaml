@@ -95,6 +95,9 @@ importers:
       pg:
         specifier: ^8.20.0
         version: 8.20.0
+      pmtiles:
+        specifier: ^4.4.1
+        version: 4.4.1
       posthog-js:
         specifier: ^1.369.3
         version: 1.369.3
@@ -5156,6 +5159,9 @@ packages:
     resolution: {integrity: sha512-C8oWjPR3F81yljW9o5OxcWzfh6avkVwDD2VYdwIGqTkl+OGFISgypqzfu7dOe4QNLL2aqcWBmI3PMtLIK233lw==}
     engines: {node: '>=18'}
     hasBin: true
+
+  pmtiles@4.4.1:
+    resolution: {integrity: sha512-5oTeQc/yX/ft1evbpIlnoCZugQuug/iYIAj/ZTqIqzdGek4uZEho99En890EE6NOSI3JTI3IG8R7r8+SltphxA==}
 
   po-parser@2.1.1:
     resolution: {integrity: sha512-ECF4zHLbUItpUgE3OTtLKlPjeBN+fKEczj2zYjDfCGOzicNs0GK3Vg2IoAYwx7LH/XYw43fZQP6xnZ4TkNxSLQ==}
@@ -11694,6 +11700,10 @@ snapshots:
       playwright-core: 1.59.1
     optionalDependencies:
       fsevents: 2.3.2
+
+  pmtiles@4.4.1:
+    dependencies:
+      fflate: 0.8.2
 
   po-parser@2.1.1: {}
 

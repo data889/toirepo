@@ -175,3 +175,52 @@
     @apply font-sans;
   }
 }
+
+/* ============================================================
+ * MapLibre control overrides — paper aesthetic (T3.4)
+ * MapLibre's default styles use blue accents and crisp shadows
+ * that clash with the toirepo paper theme. Overriding via the
+ * stable .maplibregl-* class names. !important is necessary
+ * because MapLibre injects high-specificity styles.
+ * ============================================================ */
+.maplibregl-ctrl-group {
+  background: var(--color-paper) !important;
+  border: 0.5px solid var(--color-border-soft) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button {
+  background-color: transparent !important;
+  color: var(--color-ink-primary) !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background-color: var(--color-border-soft) !important;
+}
+
+.maplibregl-ctrl-group button:not(:last-child) {
+  border-bottom: 0.5px solid var(--color-border-soft) !important;
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgba(253, 252, 249, 0.7) !important;
+  color: var(--color-ink-tertiary) !important;
+  font-size: 10px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--color-link) !important;
+}
+
+/* User-location marker recolored from MapLibre's default blue to the
+ * mall icon's deep teal (already in our palette as the link color). */
+.maplibregl-user-location-dot,
+.maplibregl-user-location-dot::before {
+  background-color: var(--color-toilet-mall) !important;
+}
+
+.maplibregl-user-location-dot::after {
+  border-color: var(--color-toilet-mall) !important;
+}
