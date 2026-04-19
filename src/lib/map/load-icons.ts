@@ -3,7 +3,13 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 const ICON_IDS = ['public', 'mall', 'konbini', 'purchase'] as const
 export type IconId = (typeof ICON_IDS)[number]
 
-const ICON_SIZE = 32
+// 128px to match the 4x-rasterized SVG (width/height = 4 × viewBox).
+// pixelRatio: 4 below tells MapLibre this is a 4x-density source;
+// combined with the layer's icon-size: 1 the icon is 32px logical.
+// On Retina (DPR 2) the 64px physical target is downsampled from 128px
+// — the downsample is what produces sharp edges, vs the 2x source that
+// was effectively 1:1 and still showed pixelation.
+const ICON_SIZE = 128
 
 /**
  * Load the four toilet-type SVGs into the MapLibre image registry as
@@ -33,7 +39,7 @@ export async function loadToiletIcons(map: MapLibreMap): Promise<void> {
       await new Promise<void>((resolve, reject) => {
         const img = new Image(ICON_SIZE, ICON_SIZE)
         img.onload = () => {
-          map.addImage(imageId, img, { pixelRatio: 2 })
+          map.addImage(imageId, img, { pixelRatio: 4 })
           URL.revokeObjectURL(url)
           resolve()
         }

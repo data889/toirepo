@@ -76,7 +76,13 @@ function buildSvg(spec: IconSpec): string {
   const textY = 16 + 5 + letterYOffset
   const shapeEl = shapePath(shape)
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ICON_SIZE} ${ICON_SIZE}" width="${ICON_SIZE}" height="${ICON_SIZE}" role="img" aria-label="toilet marker (${spec.type})">
+  // width/height = 4x viewBox so HTMLImage rasterizes at 128x128. Paired
+  // with addImage(pixelRatio: 4) and the layer's icon-size: 1, MapLibre
+  // treats this as a 4x-density 32px logical icon. On Retina (DPR 2)
+  // the 64px physical target is DOWNsampled from a 128px source — that
+  // downsample is what gives sharp edges. A 1:1 or tiny upsample (the
+  // 2x source variant we tried before) still showed pixelation.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ICON_SIZE} ${ICON_SIZE}" width="${ICON_SIZE * 4}" height="${ICON_SIZE * 4}" role="img" aria-label="toilet marker (${spec.type})">
   <g fill="${fill}" stroke="${STROKE_COLOR}" stroke-width="${STROKE_WIDTH}" stroke-linejoin="round">
     ${shapeEl}
   </g>
