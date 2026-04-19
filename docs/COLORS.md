@@ -27,6 +27,26 @@ Hex 值以 `globals.css` 为唯一真相源，本文件仅为查询便捷。
 
 选色逻辑：日式陶器釉色（朱砂／青花／苔绿／赭石金），色相区分度高、饱和度中等，与纸色底图协调。
 
+### 图标文件
+
+四种图标的 SVG 源文件在 `public/toilet-icons/`：
+
+| 文件           | 类型     | 形状       | 字母 | 填充色    |
+| -------------- | -------- | ---------- | ---- | --------- |
+| `public.svg`   | PUBLIC   | 圆形       | `P`  | `#D4573A` |
+| `mall.svg`     | MALL     | 圆角方形   | `M`  | `#2C6B8F` |
+| `konbini.svg`  | KONBINI  | 三角形     | `C`  | `#5C8A3A` |
+| `purchase.svg` | PURCHASE | 盾牌五边形 | `¥`  | `#B8860B` |
+
+图标共同规范：
+
+- 尺寸 32×32 CSS 像素（viewBox `0 0 32 32`）
+- 白色外描边 2.5px（`#FDFCF9`，保证在任何底图色上可见）
+- 字母颜色 `#FDFCF9`、字体 `Inter → system-ui` fallback、字号 14px、字重 500
+
+修改图标需要编辑 `scripts/generate-toilet-icons.ts`，重跑 `pnpm icons:generate`。
+**不要手工编辑单个 SVG 文件**——脚本是唯一真相源。
+
 ## UI 控件（§4.2）
 
 | 变量                    | Hex       | Tailwind class                              | 用途                      |
