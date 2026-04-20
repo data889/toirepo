@@ -5,6 +5,61 @@
 
 ---
 
+## M5 (2026-04-20)
+
+### `NEEDS_REVISION` 状态未纳入 ToiletStatus enum (P3 决策)
+
+**症状**：M5 Prompt 3 的 MySubmissionsList `STATUS_COLOR` 与 i18n status map
+按 Prisma `ToiletStatus` 真实 enum 5 值（PENDING/APPROVED/REJECTED/HIDDEN/
+ARCHIVED）实现，未含审核反馈→用户修改→重提交 状态机需要的 NEEDS_REVISION。
+**根因**：`prisma/schema.prisma` 初版 enum 未设计 NEEDS_REVISION；CLAUDE.md
+§4 红线禁止无 user confirmation 修 schema；Ming 决策 M6 审核流设计时再拍板。
+**未来修**：M6 prompt 决定是否加 migration + 业务逻辑。如走这条路，
+MySubmissionsList 的 STATUS_COLOR + 3 语 i18n `submissions.status` 都要补。
+**影响**：M5 范围内无影响；用户当前只能看到 PENDING / APPROVED / REJECTED 三态。
+
+### Zod refine 错误消息未 i18n (P3 跳过)
+
+**症状**：`submission.create` 的 `LocalizedStringSchema.refine` message 是
+英文 hardcode `'At least one locale must have a non-empty value'`。客户端
+SubmitForm 的 catch 块把 TRPCError.message 直接显示成红 banner。
+**绕过**：客户端 canSubmit 按钮级 disabled 基本拦住了无效提交；极端情况
+（绕过客户端直接 POST）才暴露这条英文 message。
+**未来修**：tRPC 客户端解析 `err.data?.zodError?.fieldErrors` 拿到
+`code='custom'` + `path` + i18n key 重渲染。或 server 端把 refine message
+写成 key（如 `'submit.error.name.allLocalesEmpty'`）让客户端 `t(key)`。
+**影响**：正常路径不触发；仅恶意/异常 client 路径看到英文技术消息。
+
+### Photo presigned URL cache 不跨 tab / 刷新持久化
+
+**症状**：`useBatchPhotoUrls` 用 React Query `staleTime: 50min`，单 tab 内
+1h presigned TTL 内只调一次 `photo.getViewUrls`。但切 tab / 刷新会重新请求。
+**绕过**：无——按现在体量（每用户 MVP 阶段 <50 提交 × ≤4 photo）每次刷新
+1 次 batch 调用成本可忽略。
+**未来改进**：M9 PWA 阶段若加 IndexedDB serwist cache，可把 presigned URL
+连同 `Expires` header 一起缓存。
+**影响**：冷加载 `/me/submissions` 首次 GET 多约 200-400ms。
+
+### Photo 上传中断遗留 R2 孤儿对象
+
+**症状**：用户走到 PhotoStep 已上传 2 张 photo 的原图+缩略图（= 4 个 R2
+object）再关 tab / 断网 / 不点提交按钮 → 那 4 个 R2 object 永不被任何
+Toilet 引用，成为垃圾。
+**根因**：`createUploadUrl` 即刻生成 object key + presigned PUT，client 直
+接上传；`submission.create` 才把 key 写入 `Photo.url`。中间没有 claim 机制。
+**绕过**：不做。MVP 阶段 R2 photos bucket 容忍少量垃圾。
+**未来改进**：M6 审核队列设计时加一个 GC 任务：扫 R2 photos bucket 找
+DB 没有对应 Photo.url 且 LastModified > 24h 的 object 批量 delete。
+
+### Worktree 并行 dev server 端口漂移（开发体验）
+
+**症状**：主仓 3000 + worktree 3001 并存时，worktree 的 MapCanvas 会偶尔
+找不到 dev mapbox style——其实是浏览器 hit 了错端口 cache。
+**绕过**：清浏览器 cache、确认 URL 带正确端口。关掉其中一个 dev 最干净。
+**影响**：仅并行开发场景。单 dev 环境无此问题。
+
+---
+
 ## M4 (2026-04-20)
 
 ### URL `?t=slug` 跳详情页时未清理 (T4.4 / T4.5)
