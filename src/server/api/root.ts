@@ -1,4 +1,5 @@
 import { createCallerFactory, createTRPCRouter } from './trpc'
+import { adminRouter } from './routers/admin'
 import { photoRouter } from './routers/photo'
 import { pingRouter } from './routers/ping'
 import { submissionRouter } from './routers/submission'
@@ -9,6 +10,7 @@ export const appRouter = createTRPCRouter({
   toilet: toiletRouter,
   photo: photoRouter,
   submission: submissionRouter,
+  admin: adminRouter,
 })
 
 export type AppRouter = typeof appRouter
