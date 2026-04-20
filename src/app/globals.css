@@ -80,6 +80,20 @@
   --color-error: #c5432a;
   --color-success: #4a7a2c;
 
+  /* ----------------------------------------------------------
+   * M7 P1 · Social layer palette
+   * Registered here, consumed in P2 UI. Full semantic mapping in
+   * docs/COLOR_TOKENS.md.
+   * ---------------------------------------------------------- */
+  --color-mint-light: rgb(191 223 210); /* review card bg (@10% opacity) */
+  --color-teal-deep: rgb(81 153 159); /* brand theme / success feedback */
+  --color-teal-blue: rgb(65 152 172); /* confirmation button hover */
+  --color-sky-soft: rgb(123 192 205); /* subdued info / link hover */
+  --color-sand: rgb(219 203 146); /* secondary surface */
+  --color-amber: rgb(236 182 106); /* star rating fill · icon accent */
+  --color-coral-soft: rgb(234 158 86); /* warning (non-blocking) */
+  --color-coral-deep: rgb(237 141 90); /* appeal warning · error feedback */
+
   /* Brand font — §4.3 (sans stack handled via --font-sans in :root) */
   --font-brand: 'Inter', system-ui, sans-serif;
 }
