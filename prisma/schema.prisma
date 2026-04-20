@@ -38,6 +38,10 @@ model User {
   trustLevel          Int @default(0)
   approvedSubmissions Int @default(0)
   rejectedSubmissions Int @default(0)
+  // M7 P1: guard so the auto-upgrade pass runs once per state change
+  // (set false after every approvedSubmissions increment; the trust
+  // recalculator sets true when it's done).
+  autoTrustChecked Boolean @default(true)
 
   bannedAt  DateTime?
   banReason String?
@@ -48,6 +52,8 @@ model User {
   photos        Photo[]
   reviews       Review[]
   confirmations Confirmation[]
+  appeals       Appeal[]       @relation("AppealAuthor")
+  resolvedAppeals Appeal[]     @relation("AppealResolver")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -160,6 +166,7 @@ model Toilet {
   auditLogs     AuditLog[]
   disputes      OwnerDispute[]
   moderation    ToiletModeration?
+  appeals       Appeal[]          @relation("AppealTarget")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -287,6 +294,10 @@ enum PhotoStatus {
 // 评论
 // ============================================================
 
+// M7 P1 reshape: rating + body + photoKeys (replaces v1 cleanliness+comment).
+// Moderation fields inlined (not poly-fk'd to ToiletModeration) — simpler
+// than a cross-model join, and review moderation is a different query
+// target than toilet moderation anyway.
 model Review {
   id       String @id @default(cuid())
   toiletId String
@@ -294,41 +305,52 @@ model Review {
   userId   String
   user     User   @relation(fields: [userId], references: [id])
 
-  cleanliness    Int
-  comment        Json?
-  originalLocale String
+  rating    Int // 1..5; enforced in tRPC + app layer
+  body      String?  @db.Text
+  photoKeys String[] // R2 keys (originals), reuses M5 upload pipeline
 
-  status         ReviewStatus @default(PENDING)
-  rejectedReason String?
+  status ReviewStatus @default(PENDING)
+
+  // Inlined Haiku moderation (mirror of ToiletModeration for reviews)
+  aiDecision     ModerationDecision?
+  aiConfidence   Float?
+  aiReasons      Json?
+  aiRawText      String?             @db.Text
+  aiModeratedAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([toiletId, userId])
   @@index([toiletId, status])
+  @@index([status, createdAt])
 }
 
 enum ReviewStatus {
   PENDING
   APPROVED
   REJECTED
+  HIDDEN // admin-hidden (not AI-rejected; preserves row for audit)
 }
 
 // ============================================================
 // 确认（"这里还能用"）
 // ============================================================
 
+// M7 P1 reshape: toggle semantics. One row = "this user says this toilet
+// still exists". No stillAvailable / note fields — the row's existence
+// IS the signal. Unique(toiletId, userId) enforces toggle: create on
+// first toggle, delete on second.
 model Confirmation {
-  id             String  @id @default(cuid())
-  toiletId       String
-  toilet         Toilet  @relation(fields: [toiletId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User    @relation(fields: [userId], references: [id])
-  stillAvailable Boolean
-  note           String?
+  id       String @id @default(cuid())
+  toiletId String
+  toilet   Toilet @relation(fields: [toiletId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
 
+  @@unique([toiletId, userId])
   @@index([toiletId])
   @@index([userId, createdAt])
 }
@@ -361,6 +383,56 @@ enum DisputeStatus {
   APPROVED
   REJECTED
   NEEDS_INFO
+}
+
+// ============================================================
+// 用户申诉 (M7 P1) — 与 OwnerDispute 区分：
+//   OwnerDispute: 业主来申诉"我不想我的店被列"
+//   Appeal:       用户自己的提交被 reject → 要求复核 (OWN_SUBMISSION_REJECT)
+//                 用户看到他人 approved 的数据是错 → 举报 (BAD_APPROVED_DATA)
+// 二者路由 / 权限 / UI 都不同，刻意独立存在。
+// ============================================================
+
+model Appeal {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("AppealAuthor", fields: [userId], references: [id], onDelete: Cascade)
+
+  type AppealType
+  // Exactly one of these is non-null — enforced via CHECK constraint in
+  // migration raw SQL (Prisma doesn't model multi-column CHECKs natively).
+  targetToiletId String?
+  targetToilet   Toilet? @relation("AppealTarget", fields: [targetToiletId], references: [id], onDelete: Cascade)
+  // OWN_SUBMISSION_REJECT's target is also a Toilet row (submissions that
+  // became REJECTED). We intentionally don't branch to a separate
+  // Submission entity — REJECTED Toilets still exist in the table.
+
+  reason   String   @db.Text
+  evidence String[] // R2 photo keys (optional)
+
+  status         AppealStatus @default(PENDING)
+  resolutionNote String?      @db.Text
+  resolvedById   String?
+  resolvedBy     User?        @relation("AppealResolver", fields: [resolvedById], references: [id])
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@index([targetToiletId])
+}
+
+enum AppealType {
+  OWN_SUBMISSION_REJECT // my submission got rejected — please reconsider
+  BAD_APPROVED_DATA     // someone else's approved entry is wrong — please remove
+}
+
+enum AppealStatus {
+  PENDING
+  UPHELD    // admin agreed: reject→approved OR approved→rejected
+  DISMISSED // admin disagreed; no state change
 }
 
 // ============================================================

@@ -54,6 +54,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.locale = user.locale
         session.user.bannedAt = user.bannedAt
         session.user.emailVerified = user.emailVerified
+        // M7 P1: trustLevel is read on every protected procedure
+        // (canReviewToilet / canAppeal), session carries it to avoid
+        // per-request DB round-trip in the auth middleware.
+        session.user.trustLevel = user.trustLevel
       }
       return session
     },

@@ -13,22 +13,25 @@ declare module 'next-auth' {
       locale: string
       bannedAt: Date | null
       emailVerified: Date | null
+      trustLevel: number
     }
   }
   interface User {
     role: UserRole
     locale: string
     bannedAt: Date | null
+    trustLevel: number
   }
 }
 
 // PrismaAdapter passes the full Prisma User row to the session callback as
-// `AdapterUser`. Augment so custom fields (role, locale, bannedAt) are
-// visible when the callback consumes them.
+// `AdapterUser`. Augment so custom fields (role, locale, bannedAt, trustLevel)
+// are visible when the callback consumes them.
 declare module 'next-auth/adapters' {
   interface AdapterUser {
     role: UserRole
     locale: string
     bannedAt: Date | null
+    trustLevel: number
   }
 }
