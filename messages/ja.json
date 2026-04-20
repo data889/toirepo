@@ -20,6 +20,9 @@
     "label": "言語"
   },
   "auth": {
+    "signIn": "ログイン",
+    "signOut": "ログアウト",
+    "mySubmissions": "投稿一覧",
     "signin": {
       "title": "toirepo にログイン",
       "subtitle": "東京の隠れた無料トイレを見つけよう",

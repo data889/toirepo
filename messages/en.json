@@ -20,6 +20,9 @@
     "label": "Language"
   },
   "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "mySubmissions": "My submissions",
     "signin": {
       "title": "Sign in to toirepo",
       "subtitle": "Find the hidden free toilets in Tokyo",

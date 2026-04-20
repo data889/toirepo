@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl'
 import { AdminHeaderLink } from '@/components/layout/AdminHeaderLink'
+import { AuthStatus } from '@/components/layout/AuthStatus'
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher'
 import { MapCanvas } from '@/components/map/MapCanvas'
 
@@ -18,8 +19,9 @@ export default function HomePage() {
     >
       <header className="flex items-center justify-between px-6 py-4">
         <h1 className="text-xl font-medium">{t('common.appName')}</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <AdminHeaderLink />
+          <AuthStatus />
           <LocaleSwitcher />
         </div>
       </header>
