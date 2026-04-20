@@ -52,5 +52,77 @@
       "comingSoon": "写真・レビュー・確認情報などの詳細は今後追加されます。",
       "coordinates": "座標:{lat}, {lng}"
     }
+  },
+  "submit": {
+    "fab": { "label": "トイレを投稿" },
+    "title": "新しいトイレを投稿",
+    "submit": "投稿する",
+    "submitting": "送信中…",
+    "photo": {
+      "title": "写真",
+      "count": "（{current}/{max}）",
+      "hint": "1〜4 枚。アップロード前に自動で圧縮し、位置情報を削除します。",
+      "add": "写真を追加",
+      "uploading": "アップロード中…",
+      "remove": "削除"
+    },
+    "location": {
+      "title": "位置",
+      "hint": "地図をタップしてピンを置くか、現在地ボタンを使ってください。",
+      "useCurrentLocation": "現在地を使う",
+      "geolocating": "取得中…",
+      "geolocationFailed": "現在地を取得できませんでした。地図で選択してください。",
+      "geolocationUnsupported": "このブラウザは位置情報に対応していません。地図で選択してください。",
+      "mapError": "地図の読み込みに失敗しました",
+      "notSelected": "未選択"
+    },
+    "type": {
+      "title": "種類",
+      "hint": "このトイレに最も近い種類を選んでください。",
+      "PUBLIC": { "label": "公共", "hint": "公園・駅・街中" },
+      "MALL": { "label": "モール", "hint": "百貨店・商業施設の中" },
+      "KONBINI": { "label": "コンビニ", "hint": "7-11 / Lawson など" },
+      "PURCHASE": { "label": "要購入", "hint": "カフェ・飲食店で注文が必要" }
+    },
+    "name": {
+      "title": "名称",
+      "hint": "1 つの言語は必須です。",
+      "placeholder": {
+        "zh-CN": "例：东京站 丸之内北口厕所",
+        "ja": "例：東京駅 丸の内北口トイレ",
+        "en": "e.g. Tokyo Station Marunouchi North Restroom"
+      }
+    },
+    "accessNote": {
+      "title": "入口・経路（任意）",
+      "hint": "トイレまでの行き方を他のユーザーに伝えてください。",
+      "placeholder": {
+        "zh-CN": "例：从主入口进，沿左侧走廊到底右转。",
+        "ja": "例：正面入口から入り、左通路を奥まで進んで右。",
+        "en": "e.g. Enter through main entrance, go down the left corridor, turn right at the end."
+      }
+    }
+  },
+  "submissions": {
+    "title": "投稿履歴",
+    "backToMap": "地図に戻る",
+    "loading": "読み込み中…",
+    "error": "読み込みに失敗しました",
+    "empty": "まだ投稿がありません。",
+    "submitFirst": "最初のトイレを投稿する",
+    "untitled": "（無題）",
+    "justSubmittedTitle": "投稿しました！",
+    "justSubmittedBody": "審査待ちです。承認されるとマップに表示されます。",
+    "status": {
+      "PENDING": "審査中",
+      "APPROVED": "承認済み",
+      "REJECTED": "却下"
+    },
+    "type": {
+      "PUBLIC": "公共",
+      "MALL": "モール",
+      "KONBINI": "コンビニ",
+      "PURCHASE": "要購入"
+    }
   }
 }

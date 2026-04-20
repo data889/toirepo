@@ -52,5 +52,77 @@
       "comingSoon": "Photos, reviews, and confirmations will be added in future updates.",
       "coordinates": "Coordinates: {lat}, {lng}"
     }
+  },
+  "submit": {
+    "fab": { "label": "Submit toilet" },
+    "title": "Submit a new toilet",
+    "submit": "Submit",
+    "submitting": "Submitting…",
+    "photo": {
+      "title": "Photos",
+      "count": "({current}/{max})",
+      "hint": "Between 1 and 4 photos. We auto-compress and strip location data before upload.",
+      "add": "Add photo",
+      "uploading": "Uploading…",
+      "remove": "Remove"
+    },
+    "location": {
+      "title": "Location",
+      "hint": "Tap the map to drop a pin, or use the button to grab your current location.",
+      "useCurrentLocation": "Use current location",
+      "geolocating": "Locating…",
+      "geolocationFailed": "Could not get current location. Please pick on the map.",
+      "geolocationUnsupported": "This browser doesn't support geolocation. Please pick on the map.",
+      "mapError": "Map failed to load",
+      "notSelected": "Not selected"
+    },
+    "type": {
+      "title": "Type",
+      "hint": "Pick the best match for this toilet.",
+      "PUBLIC": { "label": "Public", "hint": "Parks, stations, streets" },
+      "MALL": { "label": "Mall", "hint": "Inside a shopping mall" },
+      "KONBINI": { "label": "Konbini", "hint": "7-Eleven, Lawson, etc." },
+      "PURCHASE": { "label": "Purchase", "hint": "Cafés & restaurants, order first" }
+    },
+    "name": {
+      "title": "Name",
+      "hint": "At least one language is required.",
+      "placeholder": {
+        "zh-CN": "例：东京站 丸之内北口厕所",
+        "ja": "例：東京駅 丸の内北口トイレ",
+        "en": "e.g. Tokyo Station Marunouchi North Restroom"
+      }
+    },
+    "accessNote": {
+      "title": "Access notes (optional)",
+      "hint": "Tell other users how to find this toilet.",
+      "placeholder": {
+        "zh-CN": "例：从主入口进，沿左侧走廊到底右转。",
+        "ja": "例：正面入口から入り、左通路を奥まで進んで右。",
+        "en": "e.g. Enter through main entrance, go down the left corridor, turn right at the end."
+      }
+    }
+  },
+  "submissions": {
+    "title": "My submissions",
+    "backToMap": "Back to map",
+    "loading": "Loading…",
+    "error": "Failed to load",
+    "empty": "You haven't submitted any toilets yet.",
+    "submitFirst": "Submit your first one",
+    "untitled": "(Untitled)",
+    "justSubmittedTitle": "Submitted!",
+    "justSubmittedBody": "Your toilet is now awaiting review. It'll appear on the map once approved.",
+    "status": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "type": {
+      "PUBLIC": "Public",
+      "MALL": "Mall",
+      "KONBINI": "Konbini",
+      "PURCHASE": "Purchase"
+    }
   }
 }

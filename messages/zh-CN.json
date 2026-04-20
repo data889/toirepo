@@ -52,5 +52,77 @@
       "comingSoon": "照片、评论、确认状态等详细信息将在后续版本中添加。",
       "coordinates": "坐标:{lat}, {lng}"
     }
+  },
+  "submit": {
+    "fab": { "label": "提交厕所" },
+    "title": "提交新厕所",
+    "submit": "提交",
+    "submitting": "提交中…",
+    "photo": {
+      "title": "照片",
+      "count": "（{current}/{max}）",
+      "hint": "最少 1 张，最多 4 张。照片会在上传前自动压缩并移除位置信息。",
+      "add": "添加照片",
+      "uploading": "上传中…",
+      "remove": "移除"
+    },
+    "location": {
+      "title": "位置",
+      "hint": "在地图上点击放置标记，或使用当前位置按钮自动填充。",
+      "useCurrentLocation": "使用当前位置",
+      "geolocating": "定位中…",
+      "geolocationFailed": "无法获取当前位置，请手动在地图上点选。",
+      "geolocationUnsupported": "当前浏览器不支持定位功能，请手动在地图上点选。",
+      "mapError": "地图加载失败",
+      "notSelected": "尚未选择"
+    },
+    "type": {
+      "title": "类型",
+      "hint": "选择这个厕所最符合的类型。",
+      "PUBLIC": { "label": "公共", "hint": "公园、车站、街边" },
+      "MALL": { "label": "商场", "hint": "百货商场内部" },
+      "KONBINI": { "label": "便利店", "hint": "7-11 / Lawson 等" },
+      "PURCHASE": { "label": "需消费", "hint": "咖啡店 / 餐厅需点单" }
+    },
+    "name": {
+      "title": "名称",
+      "hint": "至少填一种语言。",
+      "placeholder": {
+        "zh-CN": "例：东京站 丸之内北口厕所",
+        "ja": "例：東京駅 丸の内北口トイレ",
+        "en": "e.g. Tokyo Station Marunouchi North Restroom"
+      }
+    },
+    "accessNote": {
+      "title": "进入路径（可选）",
+      "hint": "告诉其他用户如何找到这个厕所。",
+      "placeholder": {
+        "zh-CN": "例：从主入口进，沿左侧走廊到底右转。",
+        "ja": "例：正面入口から入り、左通路を奥まで進んで右。",
+        "en": "e.g. Enter through main entrance, go down the left corridor, turn right at the end."
+      }
+    }
+  },
+  "submissions": {
+    "title": "我的提交",
+    "backToMap": "返回地图",
+    "loading": "加载中…",
+    "error": "加载失败",
+    "empty": "还没有提交过厕所。",
+    "submitFirst": "提交第一个",
+    "untitled": "（未命名）",
+    "justSubmittedTitle": "提交成功！",
+    "justSubmittedBody": "你的厕所已进入待审状态。审核通过后会出现在地图上。",
+    "status": {
+      "PENDING": "审核中",
+      "APPROVED": "已通过",
+      "REJECTED": "已拒绝"
+    },
+    "type": {
+      "PUBLIC": "公共",
+      "MALL": "商场",
+      "KONBINI": "便利店",
+      "PURCHASE": "需消费"
+    }
   }
 }
