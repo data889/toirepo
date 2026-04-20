@@ -5,20 +5,18 @@
 
 ---
 
-## 当前状态（M9 P1 进行中 · 2026-04-20）
+## 当前状态（M9 P1 完成 · 2026-04-21）
 
-**7 / 11 里程碑完成 + M9 拆成 P1 (PWA) / P2 (SEO)，P1 代码 ready 等 Ming
-实机装机验证。约 125 commits 累计。**
+**8 / 11 里程碑完成（72%）· 累计 ~130 commits。**
 
-- ✅ M1-M6 + M11：基础设施 + UGC + 审核 + 真实数据
-- 🔄 M9 P1 PWA 装机：代码全部就位（manifest / icons / SW / layout metadata），
-  等 Ming iPhone 实机装机验证
+- ✅ M1-M6 + M11 + M9 P1：基础设施 + UGC + 审核 + 真实数据 + PWA 装机
 - ⏳ M9 P2 SEO 元数据（OG / sitemap / structured data）— 合并到 M10 部署前置
 - ⏳ M7 / M8 / M10：社交层 / 翻译 / 部署
 
-**产品已达 alpha 可用状态**：localhost 上可作真实 app 使用，手机扫局域网 IP
-即可访问。DB 含 10,129 条厕所（10,106 OSM + 23 用户/seed），覆盖东京 23 区
-全域。
+**产品已达 iPhone 装机可用状态**：Ming 已通过 `http://192.168.151.5:3000`
+在 iPhone Safari "添加到主屏幕"，standalone 模式 + 10,106 marker + 完整交互
+都验证通过。LAN 访问的运维细节（IP 漂移维护 / R2 CORS 白名单）记在
+`docs/LAN_ACCESS.md`，M10 部署后可以收掉。
 
 ---
 
@@ -26,10 +24,10 @@
 
 原 "M9 SEO + PWA" 在 M11 完成后拆成两块：
 
-- **M9 P1 · PWA 核心** — manifest / 多尺寸 icons / service worker / iOS
-  meta tags → iPhone "Add to Home Screen" + standalone 显示
+- **M9 P1 · PWA 核心** ✅ — manifest / 多尺寸 icons / service worker / iOS
+  meta tags → iPhone "Add to Home Screen" + standalone 显示【完成 2026-04-21】
 - **M9 P2 · SEO 元数据** — Open Graph / sitemap.ts / robots.txt / JSON-LD
-  → 合并到 M10 Vercel 部署前置
+  → 并入 M10 Vercel 部署前置步骤，**不作为独立里程碑**
 
 **拆分理由**：localhost 阶段 SEO 空转（Google 爬不到 dev 服务器）。PWA 是
 M11 真正的产品闭环 —— 10,106 条 OSM 数据装进 Ming 手机 home screen 才算完
@@ -39,12 +37,12 @@ M11 真正的产品闭环 —— 10,106 条 OSM 数据装进 Ming 手机 home sc
 
 ## 剩余里程碑推荐顺序
 
-1. **M9 P1 PWA**（代码完成，等实机验证） — 让 Ming 自己的 iPhone 能装 app
-2. **M7 评论/确认/申诉** — 社交层
-3. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖
-4. **M10 Vercel 部署**（含 M9 P2 SEO 一起做）— 对外上线
+1. **M7 评论/确认/申诉** — 社交层，无外部依赖可立即开工
+2. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖，需 DeepL API key
+3. **M10 Vercel 部署**（含 M9 P2 SEO + prod R2 CORS 切换）— 对外上线
 
-M7 和 M9 P1 都无外部依赖，可立即开工。M8 需 DeepL key、M10 需一堆外部账号。
+M7 可立即开工。M8 需 Ming 先申请 DeepL Free key（10 min 注册）。M10 需一堆
+外部账号（Vercel / Supabase / 域名），见各自章节。
 
 ---
 
