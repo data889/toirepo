@@ -5,6 +5,19 @@
 
 ---
 
+## M4 (2026-04-20)
+
+### URL `?t=slug` 跳详情页时未清理 (T4.4 / T4.5)
+
+**症状**：在 drawer 打开状态下点"查看详情"跳到 `/[locale]/t/[slug]`，
+URL 上原有的 `?t=slug` 查询参数被保留（虽然到了详情页已无意义）。
+**影响**：纯视觉小瑕疵；不影响功能或 SEO。
+**绕过**：未做。
+**未来修**：在 `ToiletDrawer` 的 "View details" `<Link>` 里 explicit 写
+`?` 清空，或在 detail page route 里 useEffect 清理。M5+ 任意一轮顺手处理。
+
+---
+
 ## M3 (2026-04-19 ~ 04-20)
 
 ### Geolocation 精度受限于 HTTP 协议 (T3.4)
