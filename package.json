@@ -25,6 +25,7 @@
     "test:watch": "vitest",
     "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
     "icons:generate": "tsx scripts/generate-toilet-icons.ts",
+    "seed": "tsx --env-file=.env.local prisma/seed.ts",
     "prepare": "husky"
   },
   "lint-staged": {
