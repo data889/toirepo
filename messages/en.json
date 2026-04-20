@@ -125,5 +125,33 @@
     "submittedAt": "Submitted {date}",
     "photoCount": "{count} photos",
     "coordinates": "Coords: {lat}, {lng}"
+  },
+  "admin": {
+    "headerLink": "Admin",
+    "queue": {
+      "title": "Moderation queue",
+      "backToMap": "Back to map",
+      "loading": "Loading…",
+      "empty": "Queue is clear",
+      "emptyHint": "No pending submissions right now.",
+      "filter": "Filter",
+      "filterAll": "All",
+      "filterAiApproved": "AI approved",
+      "filterAiNeedsHuman": "AI needs human",
+      "filterNoModeration": "No AI review",
+      "sort": "Sort",
+      "sortNewest": "Newest first",
+      "sortOldest": "Oldest first",
+      "sortHighConfidence": "Highest confidence",
+      "sortLowConfidence": "Lowest confidence",
+      "totalItems": "{count} items",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "noAI": "No AI review",
+      "untitled": "(Untitled)",
+      "submittedBy": "Submitted by",
+      "aiReasons": "AI reasons",
+      "approve": "Approve",
+      "reject": "Reject"
+    }
   }
 }

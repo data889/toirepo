@@ -125,5 +125,33 @@
     "submittedAt": "提交于 {date}",
     "photoCount": "{count} 张照片",
     "coordinates": "坐标：{lat}, {lng}"
+  },
+  "admin": {
+    "headerLink": "管理",
+    "queue": {
+      "title": "审核队列",
+      "backToMap": "返回地图",
+      "loading": "加载中…",
+      "empty": "队列已清空",
+      "emptyHint": "暂无待审核的厕所提交。",
+      "filter": "筛选",
+      "filterAll": "全部",
+      "filterAiApproved": "AI 建议通过",
+      "filterAiNeedsHuman": "AI 需人工",
+      "filterNoModeration": "未经 AI 审核",
+      "sort": "排序",
+      "sortNewest": "最新优先",
+      "sortOldest": "最早优先",
+      "sortHighConfidence": "高置信度优先",
+      "sortLowConfidence": "低置信度优先",
+      "totalItems": "共 {count} 条",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "noAI": "未经 AI 审核",
+      "untitled": "（未命名）",
+      "submittedBy": "提交者",
+      "aiReasons": "AI 判断理由",
+      "approve": "通过",
+      "reject": "拒绝"
+    }
   }
 }
