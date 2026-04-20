@@ -65,6 +65,18 @@ export const toiletRouter = createTRPCRouter({
   getBySlug: publicProcedure.input(GetBySlugInputSchema).query(async ({ ctx, input }) => {
     const toilet = await ctx.db.toilet.findFirst({
       where: { slug: input.slug, status: 'APPROVED' },
+      include: {
+        photos: {
+          select: {
+            id: true,
+            url: true,
+            thumbnailUrl: true,
+            width: true,
+            height: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     })
     // Return null rather than throwing — callers (page.tsx, components)
     // decide whether to render a 404 view or a fallback.

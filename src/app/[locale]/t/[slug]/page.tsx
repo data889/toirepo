@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { getApi } from '@/lib/trpc/server'
 import { Link } from '@/i18n/navigation'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
+import { PhotoGallery } from '@/components/toilet/PhotoGallery'
 
 const TYPE_LABEL_KEY: Record<string, string> = {
   PUBLIC: 'toilet.type.public',
@@ -61,6 +62,8 @@ export default async function ToiletDetailPage({
           <h1 className="text-ink-primary text-3xl font-medium">{name}</h1>
           <p className="text-ink-secondary">{address}</p>
         </div>
+
+        {toilet.photos && toilet.photos.length > 0 && <PhotoGallery photos={toilet.photos} />}
 
         <div className="border-border-soft mt-10 border-t pt-6">
           <p className="text-ink-secondary text-sm">{t('toilet.detail.comingSoon')}</p>

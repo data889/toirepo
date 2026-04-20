@@ -1,13 +1,15 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server'
-import { redirect, Link } from '@/i18n/navigation'
+import { redirect } from '@/i18n/navigation'
 import { auth } from '@/server/auth'
-import { SubmissionsList } from './SubmissionsList'
+import { MySubmissionsList } from '@/components/me/MySubmissionsList'
 import type { Locale } from '@/i18n/routing'
 
 export default async function MySubmissionsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>
+  searchParams: Promise<{ just_submitted?: string }>
 }) {
   const { locale } = await params
   setRequestLocale(locale)
@@ -17,22 +19,14 @@ export default async function MySubmissionsPage({
     redirect({ href: '/auth/signin', locale: locale as Locale })
   }
 
+  const sp = await searchParams
   const t = await getTranslations('submissions')
 
   return (
     <main className="bg-paper text-ink-primary min-h-screen">
-      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-ink-primary text-2xl font-medium sm:text-3xl">{t('title')}</h1>
-          <Link
-            href="/"
-            className="text-ink-secondary hover:text-ink-primary text-sm underline underline-offset-4 hover:no-underline"
-          >
-            {t('backToMap')}
-          </Link>
-        </div>
-
-        <SubmissionsList />
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <h1 className="text-ink-primary mb-6 text-2xl font-medium sm:text-3xl">{t('title')}</h1>
+        <MySubmissionsList justSubmittedSlug={sp.just_submitted ?? null} />
       </div>
     </main>
   )
