@@ -5,12 +5,16 @@
 
 ---
 
-## 当前状态（M11 完成后 · 2026-04-20）
+## 当前状态（M9 P1 进行中 · 2026-04-20）
 
-**7 / 11 里程碑完成（64%）。~120 commits 累计。**
+**7 / 11 里程碑完成 + M9 拆成 P1 (PWA) / P2 (SEO)，P1 代码 ready 等 Ming
+实机装机验证。约 125 commits 累计。**
 
 - ✅ M1-M6 + M11：基础设施 + UGC + 审核 + 真实数据
-- ⏳ M7 / M8 / M9 / M10：社交层 / 翻译 / PWA / 部署
+- 🔄 M9 P1 PWA 装机：代码全部就位（manifest / icons / SW / layout metadata），
+  等 Ming iPhone 实机装机验证
+- ⏳ M9 P2 SEO 元数据（OG / sitemap / structured data）— 合并到 M10 部署前置
+- ⏳ M7 / M8 / M10：社交层 / 翻译 / 部署
 
 **产品已达 alpha 可用状态**：localhost 上可作真实 app 使用，手机扫局域网 IP
 即可访问。DB 含 10,129 条厕所（10,106 OSM + 23 用户/seed），覆盖东京 23 区
@@ -18,20 +22,29 @@
 
 ---
 
-## 剩余里程碑推荐顺序（M11 完成后重排）
+## M9 拆分（Ming + Claude chat 决策 · 2026-04-20）
 
-1. **M9 SEO + PWA** — 让 app 能装到手机上，Ming 自己能真用。
-2. **M7 评论/确认/申诉** — 社交层；有真实用户后才有评论对象。
-3. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖（现在多数是 fallback "公共厕所"）。
-4. **M10 Vercel 部署** — 对外上线。
+原 "M9 SEO + PWA" 在 M11 完成后拆成两块：
 
-**重排理由**：之前排"先 M7"假设是"让 toirepo 有社交互动"；但 M11 完成后产品
-已经可用，Ming 自己的日常使用才是最大即时价值点。M9 PWA 能把 app 装到手机
-上作日常通勤工具；M7 社交层在有真实用户之后做意义更大；M8 翻译可以在 M9
-/ M7 任何一个期间 Ming 并行申请 key 不阻塞。
+- **M9 P1 · PWA 核心** — manifest / 多尺寸 icons / service worker / iOS
+  meta tags → iPhone "Add to Home Screen" + standalone 显示
+- **M9 P2 · SEO 元数据** — Open Graph / sitemap.ts / robots.txt / JSON-LD
+  → 合并到 M10 Vercel 部署前置
 
-M9 和 M7 都无外部依赖，可立即开工。M8 需 DeepL key、M10 需一堆外部账号，
-见各自章节。
+**拆分理由**：localhost 阶段 SEO 空转（Google 爬不到 dev 服务器）。PWA 是
+M11 真正的产品闭环 —— 10,106 条 OSM 数据装进 Ming 手机 home screen 才算完
+工。SEO 等到有真实公网 URL 再做更合理。
+
+---
+
+## 剩余里程碑推荐顺序
+
+1. **M9 P1 PWA**（代码完成，等实机验证） — 让 Ming 自己的 iPhone 能装 app
+2. **M7 评论/确认/申诉** — 社交层
+3. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖
+4. **M10 Vercel 部署**（含 M9 P2 SEO 一起做）— 对外上线
+
+M7 和 M9 P1 都无外部依赖，可立即开工。M8 需 DeepL key、M10 需一堆外部账号。
 
 ---
 

@@ -5,6 +5,51 @@
 
 ---
 
+## M9 P1 (2026-04-20)
+
+### Service Worker 在 HTTP 局域网 IP 上不注册
+
+**症状**：iPhone Safari 通过 `http://192.168.x.x:3000` 访问，SW 不会被
+注册（`navigator.serviceWorker.register` 在非安全上下文静默失败）。
+**影响**：装机 + standalone 显示不受影响（manifest 足够触发 "Add to Home
+Screen"），但离线能力 + tile / tRPC 缓存要等 HTTPS。
+**修复时机**：M10 Vercel 部署后自动生效。
+**绕过**：无需；`ServiceWorkerRegistrar.tsx` 的 catch 块静默吞异常，不影响
+其他功能。
+
+### iOS 不支持 maskable icon
+
+**症状**：iPhone 主屏幕 icon 来自 `apple-touch-icon.png` (180×180, flattened
+#2C6B8F bg)，忽略 manifest 里的 maskable 项。
+**影响**：iOS 视觉圆角由 iOS 自行裁剪，而不是设计师预设的 mask shape。
+**缓解**：`gen-icons.ts` 生成 apple-touch-icon 时已用 `sharp.flatten({ background:
+'#2C6B8F' })` 扁平化掉透明通道，避免 iOS 圆角裁出一圈深色边。
+
+### Manifest / icon 更新后 iOS 已装 PWA 不自动刷
+
+**症状**：换 `public/icons/toirepo-icon-source.svg` + 重跑 `pnpm gen:icons`
++ redeploy，已装 iPhone 主屏 app 仍显示旧图标。
+**影响**：纯开发体验问题；用户角度感知不到。
+**修复**：装机流程文档（`docs/M9-pwa-install.md`）里写了删装重来的步骤。
+
+### 手写 SW 而非 Serwist / next-pwa
+
+**决策**：M9 P1 选手写 50 行 SW 而非 Serwist。
+**理由**：Next 16 + Turbopack + Serwist 的组合在 2026-04 这个版本窗口的兼容
+性未经充分验证；手写 SW 可审计、不新增 deps、不依赖 webpack-only 插件。
+**未来**：M10 部署前若发现手写 SW precache manifest 需要自动生成（CSS / JS
+bundle hash 变了 cache 就 miss），再切 Serwist。当前 precache 列表只
+`/manifest.webmanifest`，runtime 缓存按 URL pattern 不需要 hash。
+
+### PWA 图标源暂时是 SVG 程序画 (非设计稿)
+
+**症状**：`public/icons/toirepo-icon-source.svg` 是按 Ming 描述（深青渐变 +
+白 pin + 橙 T）程序画的简单版本，不是设计师稿。
+**换源路径**：把真实设计稿 PNG 放 `public/icons/toirepo-icon-1024.png`，跑
+`pnpm gen:icons` → 所有尺寸重跑。脚本已预置 PNG > SVG 优先级。
+
+---
+
 ## M11 (2026-04-20)
 
 ### `toilet.list` limit=2000 只覆盖全东京 ~20%
