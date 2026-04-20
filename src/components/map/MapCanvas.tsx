@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useLocale } from 'next-intl'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { loadToiletIcons } from '@/lib/map/load-icons'
 import { registerPmtilesProtocol } from '@/lib/map/pmtiles-protocol'
 import { loadToirepoStyle } from '@/lib/map/style-loader'
 import { toiletsToGeoJSON, type ToiletForMap } from '@/lib/map/toilet-geojson'
 import { attachToiletClickHandlers } from '@/lib/map/toilet-interactions'
+import { ToiletDrawer } from '@/components/toilet/ToiletDrawer'
 import { api } from '@/lib/trpc/client'
 
 // Tokyo Station — center of the MVP map. zoom 14 frames Chiyoda + Chuo.
@@ -29,9 +31,29 @@ export interface MapCanvasProps {
 
 export function MapCanvas({ className, style }: MapCanvasProps) {
   const locale = useLocale()
-  // Static fetch of all APPROVED toilets (cap 200). T4.3 design choice:
-  // dataset is ~20 today and won't break 200 anytime soon. The setData
-  // pipeline below is generic enough to take per-bbox refetch later.
+
+  // URL is the source of truth for "which toilet's drawer is open" — gives
+  // shareable links and survives reloads. Marker clicks set `?t=slug`;
+  // closing the drawer clears it.
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const openedSlug = searchParams.get('t')
+
+  const setOpenedSlug = useCallback(
+    (slug: string | null) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (slug) {
+        params.set('t', slug)
+      } else {
+        params.delete('t')
+      }
+      const qs = params.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    },
+    [searchParams, router, pathname],
+  )
+
   const toiletsQuery = api.toilet.list.useQuery(
     { limit: 200 },
     {
@@ -42,30 +64,26 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
-  // Marks whether the GeoJSON source has been added during map.on('load').
-  // setData calls before this is true would crash; the ref dance below
-  // avoids that race.
   const sourceAddedRef = useRef(false)
-  // Latest toilets snapshot for the map.on('load') handler — the load
-  // closure captures the value at construction time, so we read from a
-  // ref to get whatever's freshest at the moment load fires.
   const toiletsRef = useRef<ToiletForMap[] | undefined>(undefined)
-  // Same for locale, in case the user changes locale before load fires.
   const localeRef = useRef(locale)
+  // setOpenedSlug is captured in the imperative MapLibre handler; if React
+  // recreates the function (it does, on every searchParams change), we
+  // want the latest version inside the closure.
+  const setOpenedSlugRef = useRef(setOpenedSlug)
 
   const [error, setError] = useState<string | null>(null)
 
-  // Mirror the React-state values into refs so non-React-tracked code
-  // (the imperative MapLibre `load` callback) can read the latest.
   useEffect(() => {
     toiletsRef.current = toiletsQuery.data
   }, [toiletsQuery.data])
   useEffect(() => {
     localeRef.current = locale
   }, [locale])
+  useEffect(() => {
+    setOpenedSlugRef.current = setOpenedSlug
+  }, [setOpenedSlug])
 
-  // When toilets data arrives or locale changes AND the source is
-  // already on the map, push fresh data through setData.
   useEffect(() => {
     const map = mapRef.current
     if (!map || !sourceAddedRef.current) return
@@ -136,8 +154,6 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           try {
             await loadToiletIcons(map)
 
-            // Add the source empty; data is pushed via setData below
-            // (and via the toiletsQuery effect on subsequent updates).
             map.addSource('toilets', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] },
@@ -199,12 +215,9 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
               },
             })
 
-            attachToiletClickHandlers(map)
+            attachToiletClickHandlers(map, (slug) => setOpenedSlugRef.current(slug))
             sourceAddedRef.current = true
 
-            // If toilets data already arrived before load completed,
-            // push it now — the data-watching effect won't fire again
-            // unless the data reference changes.
             const toilets = toiletsRef.current
             if (toilets) {
               const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
@@ -248,5 +261,10 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     )
   }
 
-  return <div ref={containerRef} className={className} style={style} />
+  return (
+    <>
+      <div ref={containerRef} className={className} style={style} />
+      <ToiletDrawer slug={openedSlug} onClose={() => setOpenedSlug(null)} />
+    </>
+  )
 }

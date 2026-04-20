@@ -32,5 +32,25 @@
       "title": "检查你的邮箱",
       "body": "我们已发送登录链接到你的邮箱。点击链接即可完成登录。"
     }
+  },
+  "toilet": {
+    "drawer": {
+      "loading": "加载中…",
+      "error": "加载失败,请稍后重试",
+      "descriptionPlaceholder": "更多厕所详情(照片、评论、确认状态等)将在后续版本中添加。",
+      "viewDetails": "查看详情",
+      "close": "关闭"
+    },
+    "type": {
+      "public": "公共",
+      "mall": "商场",
+      "konbini": "便利店",
+      "purchase": "需消费"
+    },
+    "detail": {
+      "backToMap": "返回地图",
+      "comingSoon": "照片、评论、确认状态等详细信息将在后续版本中添加。",
+      "coordinates": "坐标:{lat}, {lng}"
+    }
   }
 }

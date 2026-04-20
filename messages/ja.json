@@ -32,5 +32,25 @@
       "title": "メールをご確認ください",
       "body": "ログインリンクをメールで送信しました。リンクをクリックするとログインが完了します。"
     }
+  },
+  "toilet": {
+    "drawer": {
+      "loading": "読み込み中…",
+      "error": "読み込みに失敗しました",
+      "descriptionPlaceholder": "写真・レビュー・確認情報などは今後追加されます。",
+      "viewDetails": "詳細を見る",
+      "close": "閉じる"
+    },
+    "type": {
+      "public": "公共",
+      "mall": "モール",
+      "konbini": "コンビニ",
+      "purchase": "要購入"
+    },
+    "detail": {
+      "backToMap": "地図に戻る",
+      "comingSoon": "写真・レビュー・確認情報などの詳細は今後追加されます。",
+      "coordinates": "座標:{lat}, {lng}"
+    }
   }
 }

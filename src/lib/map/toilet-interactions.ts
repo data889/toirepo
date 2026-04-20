@@ -1,18 +1,4 @@
-import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl'
-
-const TYPE_LABEL: Record<string, string> = {
-  PUBLIC: '公共',
-  MALL: '商场',
-  KONBINI: '便利店',
-  PURCHASE: '需消费',
-}
-
-const TYPE_COLOR: Record<string, string> = {
-  PUBLIC: '#D4573A',
-  MALL: '#2C6B8F',
-  KONBINI: '#5C8A3A',
-  PURCHASE: '#B8860B',
-}
+import { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl'
 
 /**
  * Wire up click + hover handlers for the toilet layers added by
@@ -20,41 +6,20 @@ const TYPE_COLOR: Record<string, string> = {
  * - toilet-unclustered (single-marker symbol layer)
  * - toilet-clusters (cluster circle layer)
  *
- * Per-feature data (id, slug, type, name, address) is read off
- * feature.properties — populated by toiletsToGeoJSON in
- * src/lib/map/toilet-geojson.ts. No mock-toilets lookup; popups work
- * for any source data with the same property shape.
+ * The marker click hands the slug to `onToiletClick` so the caller
+ * (MapCanvas) can decide what happens — currently opens the
+ * ToiletDrawer via URL search-param sync. The Drawer fetches its own
+ * data from tRPC; this module no longer composes popup HTML.
  */
-export function attachToiletClickHandlers(map: MapLibreMap): void {
-  // Click on individual marker → popup
+export function attachToiletClickHandlers(
+  map: MapLibreMap,
+  onToiletClick: (slug: string) => void,
+): void {
   map.on('click', 'toilet-unclustered', (e) => {
     if (!e.features || e.features.length === 0) return
     const feature = e.features[0]
-    const props = feature.properties ?? {}
-    const type = String(props.type ?? 'PUBLIC')
-    const name = String(props.name ?? '')
-    const address = String(props.address ?? '')
-
-    const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number]
-    const label = TYPE_LABEL[type] ?? type
-    const color = TYPE_COLOR[type] ?? '#8A8578'
-
-    const html = `
-      <div class="toirepo-popup">
-        <div class="toirepo-popup-badge" style="background:${color}">${escapeHtml(label)}</div>
-        <h3 class="toirepo-popup-title">${escapeHtml(name)}</h3>
-        <p class="toirepo-popup-address">${escapeHtml(address)}</p>
-      </div>
-    `
-
-    new maplibregl.Popup({
-      closeButton: false,
-      closeOnClick: true,
-      maxWidth: '260px',
-    })
-      .setLngLat(coords)
-      .setHTML(html)
-      .addTo(map)
+    const slug = feature.properties?.slug as string | undefined
+    if (slug) onToiletClick(slug)
   })
 
   map.on('mouseenter', 'toilet-unclustered', () => {
@@ -89,13 +54,4 @@ export function attachToiletClickHandlers(map: MapLibreMap): void {
   map.on('mouseleave', 'toilet-clusters', () => {
     map.getCanvas().style.cursor = ''
   })
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
 }

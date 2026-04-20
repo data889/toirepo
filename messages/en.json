@@ -32,5 +32,25 @@
       "title": "Check your email",
       "body": "We've sent a login link to your email. Click it to finish signing in."
     }
+  },
+  "toilet": {
+    "drawer": {
+      "loading": "Loading...",
+      "error": "Failed to load, please try again",
+      "descriptionPlaceholder": "Photos, reviews, and confirmations will be added in future updates.",
+      "viewDetails": "View details",
+      "close": "Close"
+    },
+    "type": {
+      "public": "Public",
+      "mall": "Mall",
+      "konbini": "Konbini",
+      "purchase": "Purchase"
+    },
+    "detail": {
+      "backToMap": "Back to map",
+      "comingSoon": "Photos, reviews, and confirmations will be added in future updates.",
+      "coordinates": "Coordinates: {lat}, {lng}"
+    }
   }
 }
