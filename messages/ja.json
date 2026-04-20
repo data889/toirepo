@@ -114,6 +114,7 @@
     "loadError": "読み込みに失敗しました。時間をおいて再試行してください。",
     "untitled": "（無題）",
     "justSubmitted": "✅ 投稿しました！審査をお待ちください。",
+    "rejectedByAI": "AI 審査で却下されました",
     "status": {
       "PENDING": "審査中",
       "APPROVED": "承認済み",

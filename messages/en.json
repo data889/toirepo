@@ -114,6 +114,7 @@
     "loadError": "Failed to load, please try again later",
     "untitled": "(Untitled)",
     "justSubmitted": "✅ Submitted! Awaiting review.",
+    "rejectedByAI": "Rejected by AI review",
     "status": {
       "PENDING": "Pending",
       "APPROVED": "Approved",

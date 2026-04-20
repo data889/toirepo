@@ -111,6 +111,10 @@ export function MySubmissionsList({ justSubmittedSlug }: MySubmissionsListProps)
                   </p>
                 </div>
 
+                {sub.status === 'REJECTED' && sub.moderation && (
+                  <RejectionReasons reasons={sub.moderation.reasons} />
+                )}
+
                 {sub.photos.length > 0 && (
                   <div className="mt-4 grid grid-cols-4 gap-2">
                     {sub.photos.slice(0, 4).map((photo) => {
@@ -142,6 +146,30 @@ export function MySubmissionsList({ justSubmittedSlug }: MySubmissionsListProps)
           })}
         </ul>
       )}
+    </div>
+  )
+}
+
+function RejectionReasons({ reasons }: { reasons: unknown }) {
+  const t = useTranslations('submissions')
+  // Prisma Json? types come back as `JsonValue | null`; narrow to string[]
+  // before rendering. Unknown shapes fall back to silent skip so a
+  // malformed DB row doesn't crash the whole list.
+  const list = Array.isArray(reasons)
+    ? reasons.filter((r): r is string => typeof r === 'string')
+    : []
+  if (list.length === 0) return null
+  return (
+    <div
+      className="mt-3 rounded border border-[var(--color-accent-coral,#D4573A)] bg-[var(--color-accent-coral,#D4573A)]/10 p-3 text-sm"
+      role="alert"
+    >
+      <p className="text-ink-primary mb-1 font-medium">{t('rejectedByAI')}</p>
+      <ul className="text-ink-secondary list-disc space-y-1 pl-5 text-xs">
+        {list.map((reason, i) => (
+          <li key={i}>{reason}</li>
+        ))}
+      </ul>
     </div>
   )
 }

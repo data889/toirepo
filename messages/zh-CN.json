@@ -114,6 +114,7 @@
     "loadError": "加载失败，请稍后重试",
     "untitled": "（未命名）",
     "justSubmitted": "✅ 提交成功！等待审核中。",
+    "rejectedByAI": "AI 审核未通过",
     "status": {
       "PENDING": "审核中",
       "APPROVED": "已通过",
