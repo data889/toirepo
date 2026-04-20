@@ -5,6 +5,74 @@
 
 ---
 
+## M11 (2026-04-20)
+
+### `toilet.list` limit=2000 只覆盖全东京 ~20%
+
+**背景**：DB 现有 10,128 APPROVED 厕所，MapCanvas 默认拉 limit=2000。
+**影响**：东京中心区域（千代田 / 中央 / 港 / 新宿 / 涩谷）在 zoom 14 基本
+密到看不出缺口；但边郊区（练马 / 足立 / 葛饰 / 江戸川）用户可能遇到"这
+个 konbini 应该在图上但没显示"的情况。
+**升级方案**：切 bbox 动态查询 —— `toilet.list` 已支持 `bbox` 参数（T4.3
+就留了），改 MapCanvas 在 map.on('moveend') 时 refetch with current bounds。
+**不阻塞 MVP**：Ming 通勤动线全在中心区域；真实部署（M10）用户多起来
+时再升级。
+
+### OSM 数据无 photos — 详情页 PhotoGallery 永远空
+
+**背景**：用户提交的 Toilet 有 Photo relation，OSM 导入的 10,106 条 0 photos。
+**当前行为**：详情页 PhotoGallery 条件渲染（`toilet.photos.length > 0` 才渲染），
+OSM 厕所页面的"照片"一节整个缺席。
+**影响**：纯功能上正确；体验上对纯 OSM 厕所稍单薄。
+**未来功能**：M7 / post-M7 可以加"为 OSM 厕所补充照片"—— 登录用户进详情
+页点"添加照片"走一个简化的 photo-only submission 流。不开 new M.
+
+### OSM 数据 zh-CN 覆盖率被 fallback 放大
+
+**背景**：dry-run 报告 zh-CN 覆盖 33.5%，实际多数来自 PUBLIC 无名 fallback
+"公共厕所"（~3,607 条 PUBLIC 中很多都走这个 fallback），真正来自 OSM
+`name:zh` tag 的 zh-CN 名称占比低。
+**影响**：中文用户看到大量重复"公共厕所"+ 原文便利店名（"ローソン" /
+"セブン-イレブン"）混排。信息够用但视觉单调。
+**M8 修复路径**：DeepL ja→zh-CN 机翻能把 ~99.7% 的 ja 名称全量转成 zh-CN。
+估算 10k × 平均 15 字 = 150k 字符一次性费用，Free tier 完全吞得下。
+
+### OSM 批量导入绕过 AI 审核 pipeline
+
+**背景**：`scripts/osm-import.ts` 直接 `db.toilet.upsert` 写 status=APPROVED +
+source=OSM_IMPORT，不走 submission.create，不触发 moderateToilet。
+**假设**：OSM 作为开放协作社区，贡献者已经做过隐式审核，污染率极低。
+**风险**：OSM 用户恶意注入（例如把私人宅邸标成"公共厕所"）→ toirepo 用户
+被误导。
+**缓解**：admin queue 可以手动把任何一条标 HIDDEN / REJECTED；osmId 字段
+让我们可以精准定位具体条目。
+**长期改进**：M11 可以留一个 batch 工具跑抽样 AI（例如每周从 10k 中随机
+选 100 条跑 `moderateToilet`，发现 REJECTED 置信度 ≥0.85 的自动 HIDDEN）。
+成本：100 call × $0.003 = $0.30/周。
+
+### seed 脚本和 OSM 数据共存 — 靠纪律不跑 seed
+
+**背景**：`pnpm seed` 每次创建/更新 20 条 mock toilets（slug="1", "tokyo-station-..."）。
+osmId 是 NULL，和 OSM 数据的 osmId @unique 索引不冲突。
+**风险**：如果操作失误再跑一次 seed，mock 厕所会 upsert 回到 DB（slug 匹配），
+出现在地图和队列里。不会破坏数据但是制造噪音。
+**缓解**：ROADMAP.md 注明"M11 完成后不要再跑 seed"；M10 部署前把 seed 移到
+`tests/fixtures/` 或加 `--force` flag 门禁。
+**MVP 阶段**：靠纪律。
+
+### Overpass API User-Agent / Accept 头必需
+
+**症状**：`fetch(OVERPASS_ENDPOINT, { ... })` with Node 默认 headers → 406 Not
+Acceptable。
+**修复**：osm/client.ts 加 `User-Agent: toirepo-osm-import/...` + `Accept:
+application/json`。已落地。
+**未来注意**：Overpass free tier 约 25 queries/day。M11 开发迭代时贴边过。
+M10 生产环境应该缓存导入结果（R2 或 DB 快照），不在每次部署时调 Overpass。
+**长期**：M11 扩展"增量同步"时考虑调 Overpass Slim / Planet-Diff，而非每次
+重抓全量 bbox。
+
+---
+
 ## M6 (2026-04-20)
 
 ### Prisma 7 migration drift 再次触发 (P2 · 已修)

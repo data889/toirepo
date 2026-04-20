@@ -1,31 +1,37 @@
 # toirepo · 剩余里程碑路线图
 
-记录 M7 → M11 每个里程碑开工前需要 Ming 准备的外部资源、决策点，以及推荐执行顺序。
+记录每个里程碑开工前需要 Ming 准备的外部资源、决策点，以及推荐执行顺序。
 这是"不看代码也能决定下一步"的 index。
 
-状态截至 M6 完成（2026-04-20，origin/main HEAD = c93692b + 本文档 commit）。
+---
+
+## 当前状态（M11 完成后 · 2026-04-20）
+
+**7 / 11 里程碑完成（64%）。~120 commits 累计。**
+
+- ✅ M1-M6 + M11：基础设施 + UGC + 审核 + 真实数据
+- ⏳ M7 / M8 / M9 / M10：社交层 / 翻译 / PWA / 部署
+
+**产品已达 alpha 可用状态**：localhost 上可作真实 app 使用，手机扫局域网 IP
+即可访问。DB 含 10,129 条厕所（10,106 OSM + 23 用户/seed），覆盖东京 23 区
+全域。
 
 ---
 
-## 当前进度
+## 剩余里程碑推荐顺序（M11 完成后重排）
 
-6 / 11 里程碑完成。~112 commits 累计（M1 14 + M2 31 + M3 28 + M4 6 + M5 16 + M6 17）。
+1. **M9 SEO + PWA** — 让 app 能装到手机上，Ming 自己能真用。
+2. **M7 评论/确认/申诉** — 社交层；有真实用户后才有评论对象。
+3. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖（现在多数是 fallback "公共厕所"）。
+4. **M10 Vercel 部署** — 对外上线。
 
-剩余：M7 社交层 · M8 DeepL 翻译 · M9 SEO + PWA · M10 Vercel 部署 · M11 OSM 导入。
+**重排理由**：之前排"先 M7"假设是"让 toirepo 有社交互动"；但 M11 完成后产品
+已经可用，Ming 自己的日常使用才是最大即时价值点。M9 PWA 能把 app 装到手机
+上作日常通勤工具；M7 社交层在有真实用户之后做意义更大；M8 翻译可以在 M9
+/ M7 任何一个期间 Ming 并行申请 key 不阻塞。
 
----
-
-## 推荐执行顺序
-
-M6 完成后建议顺序（排序依据：依赖关系 + 外部准备可并行）：
-
-1. **M7 评论/确认/申诉** — 无外部准备，紧承 M6 审核体系
-2. **M11 OSM 导入** — 无外部准备，让产品第一次有真数据
-3. **M8 DeepL 翻译** — 需 Ming 先申请 API key，可在 M7/M11 期间并行申请
-4. **M9 SEO + PWA** — 无外部准备，但建议 M11 有真数据后再做（sitemap 才有内容）
-5. **M10 Vercel 部署** — 最后做，需域名 + Supabase + 所有 env vars 迁移
-
-M7 和 M11 都可以立即开工；M8/M9 选一个做也行，但 M9 依赖 M11 数据量大起来。
+M9 和 M7 都无外部依赖，可立即开工。M8 需 DeepL key、M10 需一堆外部账号，
+见各自章节。
 
 ---
 
@@ -149,44 +155,44 @@ NEXT_PUBLIC_POSTHOG_KEY (可选)
 
 ---
 
-## M11 · OSM 导入
+## M11 · OSM 导入 — ✅ 完成（2026-04-20）
 
-**外部依赖**：无 API key 需求（OpenStreetMap Overpass API 完全免费，只有 IP rate limit）。
+**实际产出**：
 
-**Ming 需决策**：
+- 10,106 条东京 23 区真实 OSM 数据导入 DB（KONBINI 6,201 / PUBLIC 3,607 /
+  MALL 302）
+- Overpass 查询 8.6s + 批量 upsert 4.2s，总耗时 < 13 秒
+- 0 冲突：10m 内无既有 user/seed 数据，完美分流
+- 多语言覆盖：ja 99.7% / en 93.8% / zh-CN 33.5%（后者靠 PUBLIC fallback 放大）
+- `toilet.list` 默认 limit 200 → 2000 以承载新规模，ceiling 5000
 
-- **数据范围**：东京 23 区 or 整个东京都？
-  推荐：23 区（bbox 与 M3 pmtiles 一致：`[138.9, 35.3, 140.2, 35.95]`）。
-  Overpass query：`node["amenity"="toilets"](bbox);` 估算 3000-5000 条。
-- **审核策略**：OSM 导入数据是否走 M6 AI 审核？
-  - A) 全走 AI（Haiku 成本按 $0.003/call × 5000 = $15，可接受）
-  - B) 直接 status=APPROVED 跳过 AI（OSM 数据已是社区审核过）
-  - C) 抽样 AI，例如 10% 走 AI 做 spot-check，其余自动 APPROVED
-  推荐：B（OSM 是更大社区的审核结果，toirepo 的 AI 只该管用户 submit 的）。
-- **去重策略**：用户已提交的厕所和 OSM 如何冲突检查？
-  schema `Toilet.osmId String? @unique` 已预留。
-  - A) 同坐标 50m 内匹配即认为是同一个，OSM 数据不插入
-  - B) 信任 OSM，重复的以 OSM 覆盖（风险：用户 accessNote 丢失）
-  - C) 全部 OSM 都插入，让 admin 手动判重
-  推荐：A（精确到 50m 防止重复 marker 挤在地图上）。
-- **照片处理**：OSM 没有照片。用户如果看到 OSM 厕所想加照片？
-  推荐：M11 阶段不处理；后续"补照片"功能单开一轮。
-- **更新策略**：OSM 数据会更新，toirepo 如何同步？
-  推荐：M11 只做一次性导入 + 手动触发。自动 cron 同步留给 V1.0。
+**Ming 当时的决策**：全量导入 / 容忍 bbox 边缘飘出 23 区 / PUBLIC 无名走
+"公衆トイレ" 3-locale fallback / 10m 冲突时保留现有 user/seed。
 
-**估计 commits**：~6-8（Overpass client + import script + 去重逻辑 + 运行 + seed 替换）。
+**实现文件**：`src/server/osm/{client,mapping,queries}.ts`、
+`scripts/osm-import-dryrun.ts`、`scripts/osm-import.ts`、
+`src/server/api/routers/toilet/schemas.ts`（limit 提升）、
+`src/components/map/MapCanvas.tsx`（客户端拉 2000）。
+
+**debt 落 KNOWN_ISSUES M11**：全东京 20% 覆盖率 / 无 photos / zh-CN fallback /
+绕过 AI 审核 / seed 脚本纪律 / Overpass headers。
+
+**未来增量同步**（V1.0+）：
+- 切 Overpass Diff / Planet-Diff API 做增量更新
+- 加 admin "re-import osm" 按钮或 cron
+- 抽样 AI spot-check（每周 100 条 × $0.003 = $0.30）
 
 ---
 
-## 外部资源准备清单（给 Ming 的"今天晚上可以做"列表）
+## 外部资源准备清单（给 Ming 的"今晚可以做"列表）
 
-不阻塞当前 M7，但是尽早做可以缩短后续时间：
+不阻塞 M9，但尽早做可以缩短后续时间：
 
+- [ ] App icon 1024×1024 PNG（M9）— 看设计能力
 - [ ] DeepL API key（M8）— 10 min 注册
 - [ ] Vercel 账号 + 登录（M10）— 5 min
 - [ ] Supabase 账号（M10）— 5 min
 - [ ] 域名注册 `toirepo.app`（M10）— 30 min
-- [ ] App icon 1024×1024 PNG（M9）— 看设计能力
 - [ ] Sentry 账号（M10，可选）— 5 min
 - [ ] PostHog 账号（M10，可选）— 5 min
 
