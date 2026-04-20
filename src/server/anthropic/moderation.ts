@@ -1,10 +1,10 @@
 // moderateToilet(toiletId) — Haiku 4.5 multimodal review of one submission.
 //
-// M6 P1 scope: function returns the parsed ModerationResult. No DB write
-// yet — the Toilet/Photo schema has `Photo.aiPrescreenResult` (per-photo)
-// but no holistic moderation row, and adding one is a schema decision
-// belonging to M6 P2. This file stays a pure side-effect-free evaluator
-// so P2 can choose where to persist.
+// M6 P2: persists the parsed result into the ToiletModeration table via
+// upsert (one row per Toilet, re-running overwrites). Pipeline callers
+// (submission.create) read the returned decision + confidence to apply
+// the hybrid auto-reject policy; the rawText + usage are retained for
+// audit / cost tracking.
 
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getAnthropicClient, MODERATION_MODEL } from './client'
@@ -25,6 +25,7 @@ const MAX_PHOTOS_PER_CALL = 4
 const PHOTO_MEDIA_TYPE = 'image/webp' as const
 
 export interface ModerationOutput {
+  moderationId: string
   result: ModerationResult
   usage: {
     inputTokens: number
@@ -105,14 +106,43 @@ export async function moderateToilet(toiletId: string): Promise<ModerationOutput
   }
 
   const result = parseModerationResponse(textBlock.text)
+  const rawText = textBlock.text
+  const inputTokens = response.usage.input_tokens
+  const outputTokens = response.usage.output_tokens
+
+  // Upsert into ToiletModeration — 1:1 with Toilet (toiletId @unique).
+  // Re-runs overwrite; callers who want history should move to a 1:N
+  // model (out of scope for M6 P2).
+  const record = await db.toiletModeration.upsert({
+    where: { toiletId },
+    update: {
+      decision: result.decision,
+      confidence: result.confidence,
+      reasons: result.reasons,
+      issues: result.issues,
+      model: response.model,
+      inputTokens,
+      outputTokens,
+      rawText,
+    },
+    create: {
+      toiletId,
+      decision: result.decision,
+      confidence: result.confidence,
+      reasons: result.reasons,
+      issues: result.issues,
+      model: response.model,
+      inputTokens,
+      outputTokens,
+      rawText,
+    },
+  })
 
   return {
+    moderationId: record.id,
     result,
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    },
+    usage: { inputTokens, outputTokens },
     model: response.model,
-    rawText: textBlock.text,
+    rawText,
   }
 }
