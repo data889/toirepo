@@ -5,6 +5,77 @@
 
 ---
 
+## M6 (2026-04-20)
+
+### Prisma 7 migration drift 再次触发 (P2 · 已修)
+
+**症状**：`add_toilet_moderation` migration 生成时误附加
+`DROP INDEX toilet_location_idx` + `ALTER TABLE "Toilet" ALTER COLUMN
+"location" DROP NOT NULL` 两行。运行时两者都已生效，spatial index 丢失
++ 约束放松。
+**根因**：与 M2 已记录的条目同源 — Prisma schema 里 `location` 是
+`Unsupported?`，但 DB 列是 NOT NULL + trigger；每次 `prisma migrate dev`
+都想对齐这两行。
+**修复**：手动恢复 DB（`ALTER ... SET NOT NULL` + `CREATE INDEX ... USING GIST`）
++ 从 migration 文件里剥掉那两行 + 加注释引用 KNOWN_ISSUES M2 + SPEC v1.1 §8。
+**未来防御**：每次 `pnpm prisma migrate dev` 之后必须人工 review migration
+SQL，发现这两行就删。长期方案：迁到 `prisma db push` 模式，或等 Prisma 7
+正式 GA 看这行为是否修复。
+
+### `toilet.list` staleTime 从 5min 缩到 30s (M6 admin fix)
+
+**背景**：P3 admin approve 后主地图不刷新 → 把 staleTime 改 30s +
+`refetchOnMount: 'always'`，并让 `admin.review.onSuccess` 调
+`utils.toilet.list.invalidate()` 作为主刷新信号。
+**权衡**：当前数据量（APPROVED 厕所 < 50）refetch 成本可忽略。未来 M11
+导入 OSM 后数据规模 3000+，每 30s 刷一次整个 list 会变贵。
+**未来评估点**：M11 数据导入后监控 `toilet.list` p95 响应 + 服务端 CPU；
+如超预期可改回 `staleTime: 5min` + 只在 admin.review 路径靠 invalidate。
+
+### `auth.signin` 与 `auth.signIn` 两个 key 并存
+
+**背景**：T2.2 用 nested `auth.signin.*` 放登录页文案（title/subtitle/
+google/emailLabel 等）。M6 加 header 按钮时用 `auth.signIn`（大写 I）。
+**影响**：JSON key 大小写敏感，技术上不冲突，但视觉上易读错。
+**未来修**：下一轮 i18n cleanup（可能 M8 引入 DeepL 时顺手）把 header
+flat keys 挪到 `auth.header.*` 命名空间。
+
+### 自建 `/auth/signin` 页面的 end-to-end 行为未完整回归
+
+**背景**：T2.2 建了自建 signin page；M6 P3 给它加了 AppHeader。NextAuth
+config 的 `pages.signIn` 指向该路径，所以登录流走我们这页。
+**风险**：Resend magic-link 分支在 dev 环境 Ming 从未端到端测过（只测了
+Google OAuth）。未来 M10 部署前需要用真实邮箱走一遍 magic-link 流程。
+
+### admin queue 无 pagination / virtualization
+
+**背景**：`admin.listQueue` 一次返回最多 100 条，每条附全部 photos，
+client 批量调 `photo.getViewUrls` 拿 presigned URL。
+**影响**：当前队列 <10 条无感。50+ 时 photos 签名批量会挤到 `getViewUrls`
+的 20-key 硬上限。
+**未来改进**：M10 部署前加 cursor-based pagination（基于 createdAt），
+photos 签名按页签。不阻塞 MVP 上线。
+
+### Haiku 4.5 response token 上限 512
+
+**背景**：`moderateToilet` 里 `max_tokens: 512` 固定值。
+**风险**：若 reasons 列表变长或 prompt 诱导 Haiku 写更详细 reason，
+512 token 可能截断 JSON → parser 抛错 → `submission.create` 落到 PENDING
+fallback（不自动 REJECT）。不会造成数据不一致，但会漏抓垃圾。
+**未来监控**：观察 `ToiletModeration.rawText` 长度分布；如果接近 512 的
+比例 > 5%，提到 1024。
+
+### 测试数据手动 backfill 的 slug=1 没走完整 pipeline
+
+**背景**：slug='1' 是 M5 时代提交，M6 P2 用 `pnpm test:moderation 1`
+手动跑了 AI + SQL 更新 Toilet.status。
+**影响**：该厕所 ToiletModeration 有 row，但 Toilet.publishedAt 等状态
+字段未走 `admin.review` 路径。如果未来 admin 重新看这条并 approve，
+publishedAt 会被设为当时时间（非原提交时间）— 可接受。
+**不用修**：只是一条测试数据，产品上线前 seed 清空即可。
+
+---
+
 ## M5 (2026-04-20)
 
 ### `NEEDS_REVISION` 状态未纳入 ToiletStatus enum (P3 决策)
