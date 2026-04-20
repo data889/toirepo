@@ -37,7 +37,11 @@ export function AdminQueueList() {
   const queueQuery = api.admin.listQueue.useQuery({ filter, sortBy }, { staleTime: 30 * 1000 })
   const reviewMutation = api.admin.review.useMutation({
     onSuccess: () => {
+      // Invalidate both the queue (so the approved/rejected card drops out)
+      // AND the public map's toilet.list (so APPROVED rows show up on the
+      // main map without waiting for the 30s staleTime or a manual reload).
       void utils.admin.listQueue.invalidate()
+      void utils.toilet.list.invalidate()
     },
   })
 
