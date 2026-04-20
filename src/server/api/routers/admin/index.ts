@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { Prisma } from '@/generated/prisma'
 import { createTRPCRouter, adminProcedure } from '../../trpc'
+import { recalculateTrustLevel } from '@/server/trust/autoUpgrade'
 
 // Filter selects which slice of the PENDING queue to show:
 // - ALL              — all PENDING, regardless of AI state
@@ -94,6 +95,17 @@ export const adminRouter = createTRPCRouter({
    */
   review: adminProcedure.input(ReviewActionInputSchema).mutation(async ({ ctx, input }) => {
     const newStatus = input.action === 'APPROVE' ? 'APPROVED' : 'REJECTED'
+
+    // Pull the old status + submitter first so we can attribute the
+    // counter change correctly on a transition (and skip on a no-op).
+    const before = await ctx.db.toilet.findUnique({
+      where: { id: input.toiletId },
+      select: { status: true, submittedById: true },
+    })
+    if (!before) {
+      throw new Error(`Toilet ${input.toiletId} not found`)
+    }
+
     const toilet = await ctx.db.toilet.update({
       where: { id: input.toiletId },
       data: {
@@ -103,6 +115,23 @@ export const adminRouter = createTRPCRouter({
         ...(newStatus === 'APPROVED' ? { publishedAt: new Date() } : {}),
       },
     })
+
+    // M7 P1: counter bookkeeping + trust recalc.
+    // Only credit the submitter if (a) there is one (OSM imports don't
+    // have submittedById) and (b) the status actually changed from the
+    // previous value — repeated approves on the same row don't double-count.
+    if (before.submittedById && before.status !== newStatus) {
+      const counterField = newStatus === 'APPROVED' ? 'approvedSubmissions' : 'rejectedSubmissions'
+      await ctx.db.user.update({
+        where: { id: before.submittedById },
+        data: {
+          [counterField]: { increment: 1 },
+          autoTrustChecked: false,
+        },
+      })
+      await recalculateTrustLevel(before.submittedById)
+    }
+
     return { id: toilet.id, status: toilet.status }
   }),
 })
