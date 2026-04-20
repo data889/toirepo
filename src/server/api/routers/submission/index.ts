@@ -4,6 +4,7 @@ import { createTRPCRouter, protectedProcedure, withUserRateLimit } from '../../t
 import { canSubmitToilet } from '@/lib/permissions'
 import { moderateToilet } from '@/server/anthropic/moderation'
 import { applyModerationPolicy } from '@/server/anthropic/moderation-policy'
+import { recalculateTrustLevel } from '@/server/trust/autoUpgrade'
 
 const LocalizedStringSchema = z
   .object({
@@ -123,8 +124,17 @@ export const submissionRouter = createTRPCRouter({
             where: { id: toilet.id },
             data: { status: 'REJECTED' },
           })
+          // Increment rejection counter and recalc trust ladder.
+          await ctx.db.user.update({
+            where: { id: ctx.user.id },
+            data: { rejectedSubmissions: { increment: 1 } },
+          })
+          await recalculateTrustLevel(ctx.user.id)
           finalStatus = 'REJECTED'
         }
+        // PENDING path doesn't touch counters — admin approve/reject
+        // (admin.review) is where approvedSubmissions/rejectedSubmissions
+        // actually land, since PENDING isn't a terminal state.
       } catch (e) {
         console.error(`[AI moderation failed for toilet ${toilet.id}]`, e)
         // Intentional swallow — PENDING fallback is the desired UX when

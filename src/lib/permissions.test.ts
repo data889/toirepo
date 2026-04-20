@@ -3,6 +3,7 @@ import type { PrismaClient } from '@/generated/prisma'
 import type { AuthUser } from './permissions'
 import {
   canAccessAdmin,
+  canAppeal,
   canAutoPublish,
   canConfirmToilet,
   canReviewToilet,
@@ -16,6 +17,7 @@ const baseUser: AuthUser = {
   role: 'USER',
   bannedAt: null,
   emailVerified: new Date(),
+  trustLevel: 1,
 }
 
 const adminUser: AuthUser = { ...baseUser, role: 'ADMIN' }
@@ -115,7 +117,7 @@ describe('canUploadPhoto', () => {
   })
 })
 
-describe('canConfirmToilet', () => {
+describe('canConfirmToilet (M7 P1 toggle semantics)', () => {
   it('rejects unauthenticated', async () => {
     const result = await canConfirmToilet(null, 't1', mockDb())
     expect(result).toEqual({ ok: false, reason: 'permission.mustLogin' })
@@ -124,31 +126,73 @@ describe('canConfirmToilet', () => {
     const result = await canConfirmToilet(baseUser, 't1', mockDb({ toiletCount: 0 }))
     expect(result).toEqual({ ok: false, reason: 'permission.toiletNotFound' })
   })
-  it('rejects within 30 day cooldown', async () => {
-    const result = await canConfirmToilet(baseUser, 't1', mockDb({ confirmationCount: 1 }))
-    expect(result).toEqual({ ok: false, reason: 'permission.confirmCooldown' })
+  it('accepts regardless of prior confirmation count (toggle semantics)', async () => {
+    // M7 P1 dropped the 30-day cooldown — toggle handles repeat presses.
+    const result = await canConfirmToilet(baseUser, 't1', mockDb({ confirmationCount: 5 }))
+    expect(result).toEqual({ ok: true })
   })
-  it('accepts when no prior confirmation', async () => {
+  it('accepts with zero prior confirmations', async () => {
     const result = await canConfirmToilet(baseUser, 't1', mockDb({ confirmationCount: 0 }))
     expect(result).toEqual({ ok: true })
   })
 })
 
-describe('canReviewToilet', () => {
+describe('canReviewToilet (M7 P1 trust gating + upsert)', () => {
+  const l0User: AuthUser = { ...baseUser, trustLevel: 0 }
+  const unverifiedUser: AuthUser = { ...baseUser, emailVerified: null }
+
   it('rejects unauthenticated', async () => {
     const result = await canReviewToilet(null, 't1', mockDb())
     expect(result).toEqual({ ok: false, reason: 'permission.mustLogin' })
+  })
+  it('rejects unverified email', async () => {
+    const result = await canReviewToilet(unverifiedUser, 't1', mockDb({ toiletCount: 1 }))
+    expect(result).toEqual({ ok: false, reason: 'permission.needsEmailVerification' })
+  })
+  it('rejects L0 (trustLevel too low)', async () => {
+    const result = await canReviewToilet(l0User, 't1', mockDb({ toiletCount: 1 }))
+    expect(result).toEqual({ ok: false, reason: 'permission.trustLevelTooLow' })
   })
   it('rejects when toilet not approved', async () => {
     const result = await canReviewToilet(baseUser, 't1', mockDb({ toiletCount: 0 }))
     expect(result).toEqual({ ok: false, reason: 'permission.toiletNotFound' })
   })
-  it('rejects when user already reviewed', async () => {
+  it('accepts L1 even when user already reviewed (upsert allowed)', async () => {
+    // M7 P1 dropped the "already reviewed" block — procedure upserts.
     const result = await canReviewToilet(baseUser, 't1', mockDb({ reviewCount: 1 }))
-    expect(result).toEqual({ ok: false, reason: 'permission.alreadyReviewed' })
-  })
-  it('accepts when no prior review', async () => {
-    const result = await canReviewToilet(baseUser, 't1', mockDb({ reviewCount: 0 }))
     expect(result).toEqual({ ok: true })
+  })
+})
+
+describe('canAppeal (M7 P1 · L2+ gate)', () => {
+  const l0User: AuthUser = { ...baseUser, trustLevel: 0 }
+  const l1User: AuthUser = { ...baseUser, trustLevel: 1 }
+  const l2User: AuthUser = { ...baseUser, trustLevel: 2 }
+  const l3User: AuthUser = { ...baseUser, trustLevel: 3 }
+  const unverifiedL2: AuthUser = { ...l2User, emailVerified: null }
+
+  it('rejects unauthenticated', () => {
+    expect(canAppeal(null)).toEqual({ ok: false, reason: 'permission.mustLogin' })
+  })
+  it('rejects banned user', () => {
+    expect(canAppeal(bannedUser)).toEqual({ ok: false, reason: 'permission.accountBanned' })
+  })
+  it('rejects unverified email', () => {
+    expect(canAppeal(unverifiedL2)).toEqual({
+      ok: false,
+      reason: 'permission.needsEmailVerification',
+    })
+  })
+  it('rejects L0', () => {
+    expect(canAppeal(l0User)).toEqual({ ok: false, reason: 'permission.trustLevelTooLow' })
+  })
+  it('rejects L1', () => {
+    expect(canAppeal(l1User)).toEqual({ ok: false, reason: 'permission.trustLevelTooLow' })
+  })
+  it('accepts L2', () => {
+    expect(canAppeal(l2User)).toEqual({ ok: true })
+  })
+  it('accepts L3', () => {
+    expect(canAppeal(l3User)).toEqual({ ok: true })
   })
 })

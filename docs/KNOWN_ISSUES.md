@@ -5,6 +5,61 @@
 
 ---
 
+## M7 P1 追踪 (2026-04-21)
+
+### Prisma 7 drift 第三次触发（已手动修）
+
+**症状**：`prisma migrate diff` 再次在 M7 P1 migration SQL 顶部生成
+`DROP INDEX "toilet_location_idx"` + `ALTER TABLE "Toilet" ALTER COLUMN
+"location" DROP NOT NULL`。
+**根因**：已记录的 M2 + M6 P2 条目；Prisma 7 对 `Unsupported(geography)?`
+column 的每次 diff 都会重新想拉平 NOT NULL。
+**修复**：migration.sql 顶部加了注释 + 手动剥掉那两行 + 用 `migrate
+resolve --applied` 标记已应用（避免 `migrate dev` 想重置 10k+ Toilet 数据）。
+DB 侧通过 `SELECT is_nullable` + `SELECT indexname` 验证 spatial index
++ NOT NULL 完好。
+
+### Admin 通知管道未落地（P1 刻意）
+
+**症状**：`appeal.create` 只 `console.log` 新申诉；没有 email /
+webhook / 实时推送给 admin。
+**计划**：M7 P3 admin UI 会加一个 `listPending` 列表页，当 admin 主动
+刷新时看到新申诉。真实 push 通道（Resend 邮件 or 前端 WebSocket）放
+到 M10 部署后或 P4。
+
+### Review photo 没有 thumbnail pipeline
+
+**背景**：Review.photoKeys 是 R2 原图 keys 数组，不走 M5 P2 的 photo
+upload pipeline（那个流程自动生成 thumbnail + 写 `Photo` 表）。
+**影响**：评论照片加载时走原图，加载慢。UI 可在客户端渲染时调
+`photo.getViewUrls` 拿 presigned GET，然后浏览器加载原图。
+**未来**：P2 UI 写到评论组件时，决定是否给评论照片也生成 thumbnail —
+要么复用 M5 的 photo.createUploadUrl 走 Photo 表（但 Review.photoKeys
+改成 Photo[] 关联），要么客户端走简化 resize。
+
+### Trust L3 `autoTrustChecked` bool 目前只写不读
+
+**背景**：User.autoTrustChecked 字段加上了（防重入 guard 预留），
+`admin.review` 在 counter 增加时把它置 false。但 `recalculateTrustLevel`
+不读它 —— 每次调用都重算。
+**影响**：性能无差别（都要 findUnique 读 user 一次）。字段存在但空转。
+**未来**：若 trust 计算扩展为异步 batch job（例如 daily cron 扫
+`autoTrustChecked=false` 的用户），这个 bool 才真正发挥作用。当前留着
+因 schema migration 已应用，拔掉成本 > 留着成本。
+
+### `review:submit` / `confirmation:submit` / `dispute:submit` rate-limit
+keys 被重命名
+
+**背景**：M2 T2.4 预设的 key 名 `review:submit` / `confirmation:submit`
+在 M7 P1 改为 `review:create` / `confirmation:toggle`；`dispute:submit`
+留着给未来 OwnerDispute 用。窗口参数按 Ming 决策调整。
+**影响**：旧名称在代码里无调用，Redis 也没有 orphan counter —— rename
+是干净的零停机操作。
+**记录原因**：防止未来 grep 代码找不到旧名疑惑；老 SPEC §6.3 的 key
+命名以当前 `limits.ts` 文件为准。
+
+---
+
 ## M9 P1 (2026-04-20)
 
 ### Service Worker 在 HTTP 局域网 IP 上不注册
