@@ -11,6 +11,7 @@ import { loadToirepoStyle } from '@/lib/map/style-loader'
 import { toiletsToGeoJSON, type ToiletForMap } from '@/lib/map/toilet-geojson'
 import { attachToiletClickHandlers } from '@/lib/map/toilet-interactions'
 import { ToiletDrawer } from '@/components/toilet/ToiletDrawer'
+import { SubmitFab } from '@/components/map/SubmitFab'
 import { api } from '@/lib/trpc/client'
 
 // Tokyo Station — center of the MVP map. zoom 14 frames Chiyoda + Chuo.
@@ -265,6 +266,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     <>
       <div ref={containerRef} className={className} style={style} />
       <ToiletDrawer slug={openedSlug} onClose={() => setOpenedSlug(null)} />
+      <SubmitFab />
     </>
   )
 }
