@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- toirepo PWA icon source · 1024×1024
+     Palette:
+       teal gradient #6BB3BA → #2C6B8F (SPEC §4.2 MALL deep-teal family)
+       paper white #FDFCF9
+       accent gold #E8A53A (letterform)
+     Renders identically to raster at any size via sharp / librsvg.
+     If a PNG source at public/icons/toirepo-icon-1024.png exists,
+     scripts/gen-icons.ts prefers it over this SVG. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="72%">
+      <stop offset="0%" stop-color="#6BB3BA"/>
+      <stop offset="100%" stop-color="#2C6B8F"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Full-bleed rounded-square background (iOS will mask again; this
+       shape survives the "any" purpose unchanged and looks right under
+       Android maskable mask too). -->
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!-- Map pin teardrop, centered in the safe zone. -->
+  <g filter="url(#shadow)">
+    <path d="M 512 232
+             C 646 232 740 326 740 456
+             C 740 574 632 720 512 870
+             C 392 720 284 574 284 456
+             C 284 326 378 232 512 232 Z"
+          fill="#FDFCF9"/>
+
+    <!-- Inner disc so the letterform gets a consistent backdrop regardless
+         of the gradient peak behind it. -->
+    <circle cx="512" cy="448" r="128" fill="#2C6B8F"/>
+
+    <!-- "T" letter as a single path so rendering is font-independent. -->
+    <path d="M 412 360
+             L 612 360
+             L 612 412
+             L 540 412
+             L 540 556
+             L 484 556
+             L 484 412
+             L 412 412 Z"
+          fill="#E8A53A"/>
+  </g>
+</svg>

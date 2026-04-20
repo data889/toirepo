@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "auth:check": "tsx --env-file=.env.local scripts/auth-db-check.ts",
     "icons:generate": "tsx scripts/generate-toilet-icons.ts",
+    "gen:icons": "tsx scripts/gen-icons.ts",
     "seed": "tsx --env-file=.env.local prisma/seed.ts",
     "test:moderation": "tsx --env-file=.env.local scripts/test-moderation.ts",
     "osm:dryrun": "tsx --env-file=.env.local scripts/osm-import-dryrun.ts",
