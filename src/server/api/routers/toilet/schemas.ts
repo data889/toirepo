@@ -10,7 +10,12 @@ export const BboxSchema = z.tuple([
 
 export const ListInputSchema = z.object({
   bbox: BboxSchema.optional(),
-  limit: z.number().int().min(1).max(500).default(200),
+  // Limits bumped in M11 to carry the OSM-scale dataset (~10k toilets).
+  // MapLibre's cluster aggregation handles a few thousand markers before
+  // the main thread stalls; 2000 default trades coverage (no "missing
+  // marker" at edge wards) for initial-load speed. Bbox queries let
+  // callers stay within safe density without ever touching the ceiling.
+  limit: z.number().int().min(1).max(5000).default(2000),
 })
 
 export const GetBySlugInputSchema = z.object({

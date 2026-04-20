@@ -56,7 +56,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
   )
 
   const toiletsQuery = api.toilet.list.useQuery(
-    { limit: 200 },
+    { limit: 2000 },
     {
       // Short staleTime as a fallback: the primary freshness signal is
       // explicit cache invalidation from /admin/queue (AdminQueueList
