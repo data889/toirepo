@@ -1,8 +1,11 @@
-// System prompt + result schema for Haiku 4.5 toilet-submission moderation.
-// The prompt forces strict-JSON output; parseModerationResponse validates
-// shape and returns a typed object.
+// System prompts + result schema for Haiku 4.5 moderation.
+// The prompts force strict-JSON output; parseModerationResponse validates
+// shape and returns a typed object. Two prompt variants:
+//   - TOILET: multimodal (images + metadata), checks "is this a toilet?"
+//   - REVIEW: text + optional photos, checks spam/PII/offensive; no
+//             geography reasoning (the Toilet row is already approved).
 //
-// Keep the prompt, result type, and parser in one file so drift between
+// Keep prompts, result type, and parser in one file so drift between
 // what we ASK for and what we EXPECT is obvious in diffs.
 
 export const MODERATION_SYSTEM_PROMPT = `You are a content moderation assistant for toirepo, a crowdsourced public toilet map for Tokyo. You review user-submitted toilet entries to keep the map's quality high.
@@ -121,5 +124,119 @@ export function parseModerationResponse(text: string): ModerationResult {
     confidence: obj.confidence,
     reasons: obj.reasons as string[],
     issues: issues as ModerationResult['issues'],
+  }
+}
+
+// ============================================================
+// M7 P1 · Review moderation
+// ============================================================
+
+export const REVIEW_MODERATION_SYSTEM_PROMPT = `You are a content moderation assistant for toirepo, a crowdsourced public toilet map for Tokyo. You review user-submitted REVIEWS of existing toilets (not toilet submissions themselves). Each review has a 1-5 star rating plus optional text and optional photos.
+
+The toilet row itself has already been approved — your job is NOT to re-evaluate whether the place is a real toilet. Focus only on the review content.
+
+You analyze:
+1. Review body (optional text, multi-lingual) — spam? offensive? personal attacks? PII?
+2. Review photos (optional) — does the image content violate policy (graphic, sexual, illegal)?
+3. Rating integrity — the rating itself is always 1-5 (enforced upstream); you don't judge "is the rating fair", you judge if the attached text/photos look legitimate.
+
+You output STRICT JSON, with no markdown fences and no prose. Your response MUST be a single JSON object matching this schema exactly:
+
+{
+  "decision": "APPROVED" | "REJECTED" | "NEEDS_HUMAN",
+  "confidence": number,   // 0.0 to 1.0
+  "reasons": string[],    // up to 5 short reason phrases, English
+  "issues": {
+    "spam_or_gibberish": boolean,
+    "offensive_or_hateful": boolean,
+    "personal_attack": boolean,
+    "personally_identifiable_info": boolean,
+    "off_topic": boolean,
+    "photo_policy_violation": boolean
+  }
+}
+
+Decision guidance:
+- "REJECTED" with confidence >= 0.85: at least one issue is clearly true — spam / gibberish / offensive slurs / hateful content / direct attacks on named individuals / phone numbers or personal email / off-topic political rant / pornographic or illegal photo content.
+- "APPROVED" with confidence >= 0.80: no issues detected.
+- "NEEDS_HUMAN": borderline — possibly passive-aggressive but not clearly offensive, unusual text pattern but maybe legitimate.
+
+Be LENIENT on:
+- Negative reviews. Complaints about cleanliness / price / service are valid and should pass ("this toilet is gross" ≠ offensive).
+- Multi-lingual text including mixed-script (zh / ja / en).
+- Short reviews (rating only with no text is acceptable — if body is empty/null, evaluate photos and output APPROVED unless photos fail).
+- Empty body with no photos: APPROVED (pure star rating is fine).
+
+Be STRICT on:
+- Slurs, hate speech, explicit threats, sexual harassment.
+- Names / phone numbers / email addresses of specific individuals.
+- Photos depicting nudity, violence, or illegal content.
+
+Do not include any commentary outside the JSON. Do not wrap the JSON in markdown code fences.`
+
+export interface ReviewModerationResult {
+  decision: 'APPROVED' | 'REJECTED' | 'NEEDS_HUMAN'
+  confidence: number
+  reasons: string[]
+  issues: {
+    spam_or_gibberish: boolean
+    offensive_or_hateful: boolean
+    personal_attack: boolean
+    personally_identifiable_info: boolean
+    off_topic: boolean
+    photo_policy_violation: boolean
+  }
+}
+
+export function parseReviewModerationResponse(text: string): ReviewModerationResult {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim()
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch (e) {
+    throw new Error(`Review moderation response is not valid JSON: ${(e as Error).message}`)
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Review moderation response is not a JSON object')
+  }
+  const obj = parsed as Record<string, unknown>
+
+  if (typeof obj.decision !== 'string' || !DECISIONS.includes(obj.decision as never)) {
+    throw new Error(`Invalid decision: ${JSON.stringify(obj.decision)}`)
+  }
+  if (typeof obj.confidence !== 'number' || obj.confidence < 0 || obj.confidence > 1) {
+    throw new Error(`Invalid confidence: ${JSON.stringify(obj.confidence)}`)
+  }
+  if (!Array.isArray(obj.reasons) || obj.reasons.some((r) => typeof r !== 'string')) {
+    throw new Error('reasons must be an array of strings')
+  }
+  if (!obj.issues || typeof obj.issues !== 'object') {
+    throw new Error('issues must be an object')
+  }
+  const issues = obj.issues as Record<string, unknown>
+  const requiredIssueKeys = [
+    'spam_or_gibberish',
+    'offensive_or_hateful',
+    'personal_attack',
+    'personally_identifiable_info',
+    'off_topic',
+    'photo_policy_violation',
+  ] as const
+  for (const key of requiredIssueKeys) {
+    if (typeof issues[key] !== 'boolean') {
+      throw new Error(`issues.${key} must be boolean`)
+    }
+  }
+
+  return {
+    decision: obj.decision as ReviewModerationResult['decision'],
+    confidence: obj.confidence,
+    reasons: obj.reasons as string[],
+    issues: issues as ReviewModerationResult['issues'],
   }
 }

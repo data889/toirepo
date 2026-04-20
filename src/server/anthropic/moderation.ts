@@ -10,8 +10,11 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getAnthropicClient, MODERATION_MODEL } from './client'
 import {
   MODERATION_SYSTEM_PROMPT,
+  REVIEW_MODERATION_SYSTEM_PROMPT,
   parseModerationResponse,
+  parseReviewModerationResponse,
   type ModerationResult,
+  type ReviewModerationResult,
 } from './moderation-prompt'
 import { db } from '@/server/db'
 import { bucketName, getS3 } from '@/server/r2/client'
@@ -144,5 +147,95 @@ export async function moderateToilet(toiletId: string): Promise<ModerationOutput
     usage: { inputTokens, outputTokens },
     model: response.model,
     rawText,
+  }
+}
+
+// ============================================================
+// M7 P1 · Review moderation
+// ============================================================
+
+export interface ReviewModerationOutput {
+  result: ReviewModerationResult
+  usage: { inputTokens: number; outputTokens: number }
+  model: string
+  rawText: string
+}
+
+/**
+ * Moderate one Review via Haiku 4.5 (text + optional photos).
+ *
+ * Unlike moderateToilet, this function does NOT write to a dedicated
+ * moderation table — Review has inlined moderation columns per M7 P1
+ * schema decision. The caller (review.create / admin tooling) reads the
+ * result and updates Review.status + Review.aiDecision/aiConfidence/
+ * aiReasons/aiRawText/aiModeratedAt directly.
+ *
+ * Throws on DB miss, R2 miss, or schema parse failure.
+ */
+export async function moderateReview(reviewId: string): Promise<ReviewModerationOutput> {
+  const review = await db.review.findUnique({
+    where: { id: reviewId },
+    select: { id: true, rating: true, body: true, photoKeys: true },
+  })
+  if (!review) throw new Error(`Review ${reviewId} not found`)
+
+  // Photos are R2 keys. Reviews cap at MAX_PHOTOS_PER_CALL too; anything
+  // beyond gets dropped silently for cost/latency.
+  const s3 = getS3()
+  const bucket = bucketName('photos')
+  const photoKeys = review.photoKeys.slice(0, MAX_PHOTOS_PER_CALL)
+
+  const imageBlocks = await Promise.all(
+    photoKeys.map(async (key) => {
+      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key })
+      const response = await s3.send(cmd)
+      const bytes = await response.Body?.transformToByteArray()
+      if (!bytes) throw new Error(`Failed to fetch review photo body for key=${key}`)
+      return {
+        type: 'image' as const,
+        source: {
+          type: 'base64' as const,
+          media_type: PHOTO_MEDIA_TYPE,
+          data: Buffer.from(bytes).toString('base64'),
+        },
+      }
+    }),
+  )
+
+  const description = [
+    `Rating: ${review.rating} / 5`,
+    `Body: ${review.body ? JSON.stringify(review.body) : '(empty)'}`,
+    `Photo count: ${photoKeys.length}`,
+    '',
+    'Evaluate this review for moderation and output strict JSON.',
+  ].join('\n')
+
+  const anthropic = getAnthropicClient()
+  const response = await anthropic.messages.create({
+    model: MODERATION_MODEL,
+    max_tokens: 512,
+    system: REVIEW_MODERATION_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: [...imageBlocks, { type: 'text', text: description }],
+      },
+    ],
+  })
+
+  const textBlock = response.content.find((b) => b.type === 'text')
+  if (!textBlock || textBlock.type !== 'text') {
+    throw new Error('Review moderation response contained no text block')
+  }
+
+  const result = parseReviewModerationResponse(textBlock.text)
+  return {
+    result,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+    model: response.model,
+    rawText: textBlock.text,
   }
 }

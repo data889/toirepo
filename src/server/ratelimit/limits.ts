@@ -3,16 +3,23 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { redis } from './redis'
 
-// SPEC §6.3 — 6 rate-limit classes (7 keys; toilet:submit has two windows).
-// Naming: {domain}:{operation}[:{window}].
+// SPEC §6.3 — rate-limit classes. Naming: {domain}:{operation}[:{window}].
 // Windows are Upstash's Duration literals: `${number} ${'s'|'m'|'h'|'d'}`.
+//
+// M7 P1 renamed review:submit → review:create, confirmation:submit →
+// confirmation:toggle (matches new toggle semantics), and added
+// appeal:create. Old names had no call-sites; the rename is safe at
+// the Redis layer (no orphan counters to migrate).
 const CONFIGS = {
   'toilet:submit:hourly': { requests: 5, window: '1 h' as const },
   'toilet:submit:daily': { requests: 20, window: '1 d' as const },
   'photo:upload': { requests: 20, window: '1 h' as const },
-  'review:submit': { requests: 10, window: '1 h' as const },
-  'confirmation:submit': { requests: 100, window: '1 d' as const },
+  'review:create': { requests: 5, window: '1 h' as const },
+  'confirmation:toggle': { requests: 20, window: '1 h' as const },
+  'appeal:create': { requests: 3, window: '1 d' as const },
   'auth:signin': { requests: 5, window: '15 m' as const },
+  // dispute:submit reserved for future OwnerDispute wiring (business
+  // owners — distinct flow from user Appeals).
   'dispute:submit': { requests: 3, window: '1 d' as const },
 } satisfies Record<string, { requests: number; window: `${number} ${'s' | 'm' | 'h' | 'd'}` }>
 

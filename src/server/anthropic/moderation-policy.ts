@@ -8,8 +8,6 @@
 // threshold or add new outcomes (AUTO_APPROVE for trusted users?) without
 // touching the pipeline integration in submission.create.
 
-import type { ModerationResult } from './moderation-prompt'
-
 export type PolicyOutcome = 'AUTO_REJECT' | 'PENDING'
 
 // Ming's M6 intro: "AI high-confidence REJECTED → 自动 REJECTED".
@@ -18,7 +16,16 @@ export type PolicyOutcome = 'AUTO_REJECT' | 'PENDING'
 // between prompt guidance and policy decision is high.
 export const HIGH_REJECT_CONFIDENCE = 0.85
 
-export function applyModerationPolicy(result: ModerationResult): PolicyOutcome {
+// M7 P1: widened from ToiletModerationResult to the minimal structural
+// shape both toilet and review moderation produce. Lets submission.create
+// and review.create share the same policy without ModerationResult /
+// ReviewModerationResult type coupling.
+export interface PolicyInput {
+  decision: 'APPROVED' | 'REJECTED' | 'NEEDS_HUMAN'
+  confidence: number
+}
+
+export function applyModerationPolicy(result: PolicyInput): PolicyOutcome {
   if (result.decision === 'REJECTED' && result.confidence >= HIGH_REJECT_CONFIDENCE) {
     return 'AUTO_REJECT'
   }

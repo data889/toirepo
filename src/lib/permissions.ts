@@ -15,7 +15,8 @@ export type PermissionResult = { ok: true } | { ok: false; reason: string }
 // Minimum user shape that covers both full User rows and session.user.
 // session.user is extended in src/types/next-auth.d.ts to include bannedAt
 // and emailVerified so callers don't have to re-fetch the full User.
-export type AuthUser = Pick<User, 'id' | 'role' | 'bannedAt' | 'emailVerified'>
+// M7 P1 adds trustLevel — gated permissions (review / appeal) need it.
+export type AuthUser = Pick<User, 'id' | 'role' | 'bannedAt' | 'emailVerified' | 'trustLevel'>
 
 // -----------------------------------------------------------
 // Static checks (filled in substep B)
@@ -75,19 +76,9 @@ export async function canConfirmToilet(
   if (!(await toiletExistsAndApproved(toiletId, db))) {
     return { ok: false, reason: 'permission.toiletNotFound' }
   }
-
-  // SPEC §7.4: one confirmation per user per toilet per 30 days.
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  const recent = await db.confirmation.count({
-    where: {
-      userId: user.id,
-      toiletId,
-      createdAt: { gte: thirtyDaysAgo },
-    },
-  })
-  if (recent > 0) {
-    return { ok: false, reason: 'permission.confirmCooldown' }
-  }
+  // M7 P1: SPEC §7.4's 30-day cooldown dropped in favor of toggle
+  // semantics (existence of the Confirmation row = "I said yes").
+  // Confirmation.toggle procedure handles create / delete both.
   return { ok: true }
 }
 
@@ -98,18 +89,33 @@ export async function canReviewToilet(
 ): Promise<PermissionResult> {
   if (!user) return { ok: false, reason: 'permission.mustLogin' }
   if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (!user.emailVerified) {
+    return { ok: false, reason: 'permission.needsEmailVerification' }
+  }
+  if (user.trustLevel < 1) {
+    return { ok: false, reason: 'permission.trustLevelTooLow' }
+  }
   if (!(await toiletExistsAndApproved(toiletId, db))) {
     return { ok: false, reason: 'permission.toiletNotFound' }
   }
+  // M7 P1: "already reviewed" is no longer a block — the procedure
+  // upserts so the same user can update their review. The @@unique
+  // at DB level still prevents accidental duplicate rows.
+  return { ok: true }
+}
 
-  // SPEC §5.2 Review.@@unique([toiletId, userId]) enforces one review per
-  // user-toilet pair at DB level. This helper answers "can the user CREATE
-  // a new review?" — editing an existing review is a separate code path.
-  const existing = await db.review.count({
-    where: { userId: user.id, toiletId },
-  })
-  if (existing > 0) {
-    return { ok: false, reason: 'permission.alreadyReviewed' }
+// M7 P1: Appeal gate. L2 (trustLevel ≥ 2) required, mirroring the
+// "must have demonstrated good standing before flagging others' data"
+// decision. Ban / email-verify checks ride along so an undisabled
+// banned user can't open appeals.
+export function canAppeal(user: AuthUser | null | undefined): PermissionResult {
+  if (!user) return { ok: false, reason: 'permission.mustLogin' }
+  if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (!user.emailVerified) {
+    return { ok: false, reason: 'permission.needsEmailVerification' }
+  }
+  if (user.trustLevel < 2) {
+    return { ok: false, reason: 'permission.trustLevelTooLow' }
   }
   return { ok: true }
 }
