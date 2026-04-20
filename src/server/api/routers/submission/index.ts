@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure, withUserRateLimit } from '../../trpc'
 import { canSubmitToilet } from '@/lib/permissions'
+import { moderateToilet } from '@/server/anthropic/moderation'
+import { applyModerationPolicy } from '@/server/anthropic/moderation-policy'
 
 const LocalizedStringSchema = z
   .object({
@@ -107,10 +109,32 @@ export const submissionRouter = createTRPCRouter({
         return t
       })
 
+      // AI moderation: synchronous await per Ming's M6 P2 call — ~2-3s
+      // model round-trip is acceptable for MVP submission UX (total
+      // 4-5s vs 1-2s). Failure mode is "stay PENDING for human queue"
+      // so the client always gets a usable response even if Haiku or
+      // R2 hiccups mid-call.
+      let finalStatus: 'PENDING' | 'REJECTED' = 'PENDING'
+      try {
+        const { result } = await moderateToilet(toilet.id)
+        const outcome = applyModerationPolicy(result)
+        if (outcome === 'AUTO_REJECT') {
+          await ctx.db.toilet.update({
+            where: { id: toilet.id },
+            data: { status: 'REJECTED' },
+          })
+          finalStatus = 'REJECTED'
+        }
+      } catch (e) {
+        console.error(`[AI moderation failed for toilet ${toilet.id}]`, e)
+        // Intentional swallow — PENDING fallback is the desired UX when
+        // the AI layer is down. M6 P3 admin queue will surface these.
+      }
+
       return {
         id: toilet.id,
         slug: toilet.slug,
-        status: toilet.status,
+        status: finalStatus,
       }
     }),
 
@@ -145,6 +169,17 @@ export const submissionRouter = createTRPCRouter({
               category: true,
             },
             orderBy: { createdAt: 'asc' },
+          },
+          // M6 P2: surface the latest AI decision + reasons so the UI
+          // can show a rejection explanation on the submitter's own
+          // /me/submissions page.
+          moderation: {
+            select: {
+              decision: true,
+              confidence: true,
+              reasons: true,
+              createdAt: true,
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
