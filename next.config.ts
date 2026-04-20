@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   // require()s them at runtime instead of trying to bundle, which fixes
   // the "Cannot find module" errors surfaced by the middleware and any
   // Server Component that imports src/server/db.ts.
+  allowedDevOrigins: ['192.168.151.5'],
   serverExternalPackages: ['@prisma/client', '@prisma/adapter-pg', 'pg'],
 }
 
