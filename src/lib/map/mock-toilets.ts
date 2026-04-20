@@ -1,6 +1,8 @@
-// Hardcoded toilet data for T3.5 visual verification.
-// T5's toilet.list tRPC query will replace this with DB-sourced data,
-// returning the same shape so MapCanvas needs no further changes.
+// Historical mock data from T3.5 (pre-database seed era).
+// No longer imported by production code as of T4.3 — MapCanvas now
+// reads from api.toilet.list and toilet-interactions reads popup data
+// off feature.properties. Kept here for reference and potential
+// migration into tests/fixtures when M11 brings real OSM imports.
 
 import type { ToiletType } from '@/generated/prisma'
 

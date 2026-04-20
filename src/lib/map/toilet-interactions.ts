@@ -1,5 +1,4 @@
-import maplibregl, { type Map as MapLibreMap, type GeoJSONSource } from 'maplibre-gl'
-import { MOCK_TOILETS } from './mock-toilets'
+import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl'
 
 const TYPE_LABEL: Record<string, string> = {
   PUBLIC: '公共',
@@ -16,31 +15,35 @@ const TYPE_COLOR: Record<string, string> = {
 }
 
 /**
- * Wire up click + hover handlers for the toilet layers added in
- * sub-step C. Two layer ids must already exist on the map:
+ * Wire up click + hover handlers for the toilet layers added by
+ * MapCanvas. Two layer ids must already exist on the map:
  * - toilet-unclustered (single-marker symbol layer)
  * - toilet-clusters (cluster circle layer)
+ *
+ * Per-feature data (id, slug, type, name, address) is read off
+ * feature.properties — populated by toiletsToGeoJSON in
+ * src/lib/map/toilet-geojson.ts. No mock-toilets lookup; popups work
+ * for any source data with the same property shape.
  */
 export function attachToiletClickHandlers(map: MapLibreMap): void {
   // Click on individual marker → popup
   map.on('click', 'toilet-unclustered', (e) => {
     if (!e.features || e.features.length === 0) return
     const feature = e.features[0]
-    const toiletId = feature.properties?.id as string | undefined
-    if (!toiletId) return
-
-    const toilet = MOCK_TOILETS.find((t) => t.id === toiletId)
-    if (!toilet) return
+    const props = feature.properties ?? {}
+    const type = String(props.type ?? 'PUBLIC')
+    const name = String(props.name ?? '')
+    const address = String(props.address ?? '')
 
     const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number]
-    const label = TYPE_LABEL[toilet.type] ?? toilet.type
-    const color = TYPE_COLOR[toilet.type] ?? '#8A8578'
+    const label = TYPE_LABEL[type] ?? type
+    const color = TYPE_COLOR[type] ?? '#8A8578'
 
     const html = `
       <div class="toirepo-popup">
-        <div class="toirepo-popup-badge" style="background:${color}">${label}</div>
-        <h3 class="toirepo-popup-title">${escapeHtml(toilet.name)}</h3>
-        <p class="toirepo-popup-address">${escapeHtml(toilet.address)}</p>
+        <div class="toirepo-popup-badge" style="background:${color}">${escapeHtml(label)}</div>
+        <h3 class="toirepo-popup-title">${escapeHtml(name)}</h3>
+        <p class="toirepo-popup-address">${escapeHtml(address)}</p>
       </div>
     `
 

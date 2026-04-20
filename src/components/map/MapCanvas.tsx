@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useLocale } from 'next-intl'
 import { loadToiletIcons } from '@/lib/map/load-icons'
-import { MOCK_TOILETS } from '@/lib/map/mock-toilets'
 import { registerPmtilesProtocol } from '@/lib/map/pmtiles-protocol'
 import { loadToirepoStyle } from '@/lib/map/style-loader'
+import { toiletsToGeoJSON, type ToiletForMap } from '@/lib/map/toilet-geojson'
 import { attachToiletClickHandlers } from '@/lib/map/toilet-interactions'
+import { api } from '@/lib/trpc/client'
 
 // Tokyo Station — center of the MVP map. zoom 14 frames Chiyoda + Chuo.
 const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812]
@@ -26,9 +28,55 @@ export interface MapCanvasProps {
 }
 
 export function MapCanvas({ className, style }: MapCanvasProps) {
+  const locale = useLocale()
+  // Static fetch of all APPROVED toilets (cap 200). T4.3 design choice:
+  // dataset is ~20 today and won't break 200 anytime soon. The setData
+  // pipeline below is generic enough to take per-bbox refetch later.
+  const toiletsQuery = api.toilet.list.useQuery(
+    { limit: 200 },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  )
+
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+  // Marks whether the GeoJSON source has been added during map.on('load').
+  // setData calls before this is true would crash; the ref dance below
+  // avoids that race.
+  const sourceAddedRef = useRef(false)
+  // Latest toilets snapshot for the map.on('load') handler — the load
+  // closure captures the value at construction time, so we read from a
+  // ref to get whatever's freshest at the moment load fires.
+  const toiletsRef = useRef<ToiletForMap[] | undefined>(undefined)
+  // Same for locale, in case the user changes locale before load fires.
+  const localeRef = useRef(locale)
+
   const [error, setError] = useState<string | null>(null)
+
+  // Mirror the React-state values into refs so non-React-tracked code
+  // (the imperative MapLibre `load` callback) can read the latest.
+  useEffect(() => {
+    toiletsRef.current = toiletsQuery.data
+  }, [toiletsQuery.data])
+  useEffect(() => {
+    localeRef.current = locale
+  }, [locale])
+
+  // When toilets data arrives or locale changes AND the source is
+  // already on the map, push fresh data through setData.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !sourceAddedRef.current) return
+    const toilets = toiletsQuery.data
+    if (!toilets) return
+
+    const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
+    if (!source) return
+
+    source.setData(toiletsToGeoJSON(toilets, locale))
+  }, [toiletsQuery.data, locale])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -88,28 +136,16 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           try {
             await loadToiletIcons(map)
 
-            const geojson: GeoJSON.FeatureCollection<
-              GeoJSON.Point,
-              { id: string; type: string; name: string }
-            > = {
-              type: 'FeatureCollection',
-              features: MOCK_TOILETS.map((t) => ({
-                type: 'Feature',
-                id: t.id,
-                geometry: { type: 'Point', coordinates: [t.lng, t.lat] },
-                properties: { id: t.id, type: t.type, name: t.name },
-              })),
-            }
-
+            // Add the source empty; data is pushed via setData below
+            // (and via the toiletsQuery effect on subsequent updates).
             map.addSource('toilets', {
               type: 'geojson',
-              data: geojson,
+              data: { type: 'FeatureCollection', features: [] },
               cluster: true,
               clusterMaxZoom: 13,
               clusterRadius: 50,
             })
 
-            // Cluster circle (zoom ≤ 13)
             map.addLayer({
               id: 'toilet-clusters',
               type: 'circle',
@@ -123,7 +159,6 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
               },
             })
 
-            // Cluster count text
             map.addLayer({
               id: 'toilet-cluster-count',
               type: 'symbol',
@@ -139,7 +174,6 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
               },
             })
 
-            // Individual markers (zoom ≥ 14, when clusters dissolve)
             map.addLayer({
               id: 'toilet-unclustered',
               type: 'symbol',
@@ -166,6 +200,18 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
             })
 
             attachToiletClickHandlers(map)
+            sourceAddedRef.current = true
+
+            // If toilets data already arrived before load completed,
+            // push it now — the data-watching effect won't fire again
+            // unless the data reference changes.
+            const toilets = toiletsRef.current
+            if (toilets) {
+              const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
+              if (source) {
+                source.setData(toiletsToGeoJSON(toilets, localeRef.current))
+              }
+            }
           } catch (e) {
             console.error('Failed to initialize toilet layers:', e)
           }
@@ -183,6 +229,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
     return () => {
       cancelled = true
+      sourceAddedRef.current = false
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
