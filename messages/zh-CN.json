@@ -105,24 +105,24 @@
   },
   "submissions": {
     "title": "我的提交",
-    "backToMap": "返回地图",
+    "empty": {
+      "heading": "还没有提交",
+      "body": "点击右下角按钮，开始提交你发现的厕所。",
+      "cta": "返回地图"
+    },
     "loading": "加载中…",
-    "error": "加载失败",
-    "empty": "还没有提交过厕所。",
-    "submitFirst": "提交第一个",
+    "loadError": "加载失败，请稍后重试",
     "untitled": "（未命名）",
-    "justSubmittedTitle": "提交成功！",
-    "justSubmittedBody": "你的厕所已进入待审状态。审核通过后会出现在地图上。",
+    "justSubmitted": "✅ 提交成功！等待审核中。",
     "status": {
       "PENDING": "审核中",
       "APPROVED": "已通过",
-      "REJECTED": "已拒绝"
+      "REJECTED": "未通过",
+      "HIDDEN": "已隐藏",
+      "ARCHIVED": "已归档"
     },
-    "type": {
-      "PUBLIC": "公共",
-      "MALL": "商场",
-      "KONBINI": "便利店",
-      "PURCHASE": "需消费"
-    }
+    "submittedAt": "提交于 {date}",
+    "photoCount": "{count} 张照片",
+    "coordinates": "坐标：{lat}, {lng}"
   }
 }

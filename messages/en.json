@@ -105,24 +105,24 @@
   },
   "submissions": {
     "title": "My submissions",
-    "backToMap": "Back to map",
+    "empty": {
+      "heading": "No submissions yet",
+      "body": "Tap the button in the bottom-right to submit a toilet you've found.",
+      "cta": "Back to map"
+    },
     "loading": "Loading…",
-    "error": "Failed to load",
-    "empty": "You haven't submitted any toilets yet.",
-    "submitFirst": "Submit your first one",
+    "loadError": "Failed to load, please try again later",
     "untitled": "(Untitled)",
-    "justSubmittedTitle": "Submitted!",
-    "justSubmittedBody": "Your toilet is now awaiting review. It'll appear on the map once approved.",
+    "justSubmitted": "✅ Submitted! Awaiting review.",
     "status": {
       "PENDING": "Pending",
       "APPROVED": "Approved",
-      "REJECTED": "Rejected"
+      "REJECTED": "Rejected",
+      "HIDDEN": "Hidden",
+      "ARCHIVED": "Archived"
     },
-    "type": {
-      "PUBLIC": "Public",
-      "MALL": "Mall",
-      "KONBINI": "Konbini",
-      "PURCHASE": "Purchase"
-    }
+    "submittedAt": "Submitted {date}",
+    "photoCount": "{count} photos",
+    "coordinates": "Coords: {lat}, {lng}"
   }
 }
