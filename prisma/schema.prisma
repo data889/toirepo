@@ -159,6 +159,7 @@ model Toilet {
   confirmations Confirmation[]
   auditLogs     AuditLog[]
   disputes      OwnerDispute[]
+  moderation    ToiletModeration?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,6 +200,46 @@ enum StallCount {
   SMALL
   MEDIUM
   LARGE
+}
+
+// ============================================================
+// AI 审核记录
+// ============================================================
+
+// 1:1 with Toilet — one current AI moderation result per submission.
+// Upserted by moderateToilet(); preserved on re-runs via update branch
+// so history isn't stored (if we need per-run audit, migrate to 1:N).
+model ToiletModeration {
+  id       String @id @default(cuid())
+  toiletId String @unique
+  toilet   Toilet @relation(fields: [toiletId], references: [id], onDelete: Cascade)
+
+  decision   ModerationDecision
+  confidence Float
+  // string[] from Haiku; typed via ModerationResult in app layer
+  reasons Json
+  // { photo_not_toilet: bool, name_spam_or_gibberish: bool, ... }
+  issues Json
+
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  // Full raw model text — kept for debugging/audit when the parsed
+  // decision looks surprising. Bounded: Haiku max_tokens=512.
+  rawText String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([decision])
+  @@index([confidence])
+  @@index([createdAt])
+}
+
+enum ModerationDecision {
+  APPROVED
+  REJECTED
+  NEEDS_HUMAN
 }
 
 // ============================================================
