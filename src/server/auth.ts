@@ -26,6 +26,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     verifyRequest: '/auth/verify-request',
   },
   callbacks: {
+    // Google verifies email ownership before issuing an OAuth consent, so
+    // any account arriving via the Google provider is implicitly
+    // email-verified. PrismaAdapter leaves User.emailVerified = null on
+    // create because the Google provider doesn't forward `email_verified`
+    // into the adapter.createUser payload — we patch it here. Cheap guard
+    // skips the UPDATE on returning logins where it's already set.
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        const existing = await db.user.findUnique({
+          where: { email: user.email },
+          select: { id: true, emailVerified: true },
+        })
+        if (existing && !existing.emailVerified) {
+          await db.user.update({
+            where: { id: existing.id },
+            data: { emailVerified: new Date() },
+          })
+        }
+      }
+      return true
+    },
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id
