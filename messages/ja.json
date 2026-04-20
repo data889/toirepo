@@ -19,6 +19,9 @@
   "localeSwitcher": {
     "label": "言語"
   },
+  "header": {
+    "backToMap": "地図に戻る"
+  },
   "auth": {
     "signIn": "ログイン",
     "signOut": "ログアウト",

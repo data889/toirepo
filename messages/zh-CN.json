@@ -19,6 +19,9 @@
   "localeSwitcher": {
     "label": "语言"
   },
+  "header": {
+    "backToMap": "返回地图"
+  },
   "auth": {
     "signIn": "登录",
     "signOut": "退出登录",

@@ -19,6 +19,9 @@
   "localeSwitcher": {
     "label": "Language"
   },
+  "header": {
+    "backToMap": "Back to map"
+  },
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",
