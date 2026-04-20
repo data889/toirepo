@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "smoke:db": "tsx --env-file=.env.local scripts/smoke-test-db.ts",
     "smoke:ratelimit": "tsx --env-file=.env.local scripts/smoke-test-ratelimit.ts",
+    "smoke:r2": "tsx --env-file=.env.local scripts/smoke-test-r2-upload.ts",
     "pmtiles:install": "bash scripts/install-pmtiles.sh",
     "pmtiles:download": "bash scripts/download-pmtiles.sh",
     "pmtiles:extract": "bash scripts/extract-tokyo-pmtiles.sh",
