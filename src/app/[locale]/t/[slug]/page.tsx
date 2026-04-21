@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
 import { PhotoGallery } from '@/components/toilet/PhotoGallery'
 import { getSiteUrl } from '@/lib/site-url'
+import { buildToiletLocalBusiness } from '@/lib/seo/jsonld'
 
 // Per-toilet metadata: title pulls the locale-resolved name, description
 // falls back to address. Hreflang annotations point at the same slug
@@ -87,8 +88,34 @@ export default async function ToiletDetailPage({
   const name = resolveToiletName(toilet, locale)
   const address = resolveToiletAddress(toilet, locale)
 
+  // JSON-LD: fetch APPROVED reviews to compute aggregateRating. Cheap
+  // — review.listByToilet is public + already cached for the drawer.
+  // Skipped entirely when count=0 so schema.org doesn't see
+  // ratingCount=0 (which it treats as invalid).
+  const reviewsResp = await api.review.listByToilet({ toiletId: toilet.id, limit: 50 })
+  const ratings = reviewsResp.reviews.map((r) => r.rating)
+  const reviewCount = ratings.length
+  const averageRating = reviewCount > 0 ? ratings.reduce((a, b) => a + b, 0) / reviewCount : null
+
+  const jsonLd = buildToiletLocalBusiness({
+    toilet: { ...toilet, photos: undefined },
+    locale,
+    siteUrl: getSiteUrl(),
+    resolvedName: name,
+    resolvedAddress: address,
+    reviewCount,
+    averageRating,
+  })
+
   return (
     <main className="bg-paper text-ink-primary min-h-screen">
+      {/* schema.org LocalBusiness/PublicToilet — emitted inline per
+          Next.js recommendation. Key prevents duplicate insertion on
+          RSC refresh. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto max-w-2xl px-6 py-10">
         <Link
           href="/"

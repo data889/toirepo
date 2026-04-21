@@ -1,11 +1,15 @@
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { AdminHeaderLink } from '@/components/layout/AdminHeaderLink'
 import { AuthStatus } from '@/components/layout/AuthStatus'
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher'
 import { MapCanvas } from '@/components/map/MapCanvas'
+import { buildWebSiteSchema } from '@/lib/seo/jsonld'
+import { getSiteUrl } from '@/lib/site-url'
 
 export default function HomePage() {
   const t = useTranslations()
+  const locale = useLocale()
+  const jsonLd = buildWebSiteSchema({ siteUrl: getSiteUrl(), locale })
   return (
     <main
       className="bg-paper text-ink-primary"
@@ -31,6 +35,10 @@ export default function HomePage() {
         overflow: 'hidden',
       }}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header className="flex items-center justify-between px-6 py-4">
         <h1 className="text-xl font-medium">{t('common.appName')}</h1>
         <div className="flex items-center gap-3">
