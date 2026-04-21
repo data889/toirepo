@@ -6,14 +6,17 @@
 // convenience-store assumption doesn't generalize). Expected
 // 300k-400k rows worldwide per OSM 2024 density.
 //
-// Strategy: split the world into 7 regional bboxes, run each
+// Strategy: split the world into 15 regional bboxes (4 continent-
+// sized + 11 sub-bboxes for the 3 continents that hit Overpass 504
+// on the first production run: Oceania / Europe / Asia). Run each
 // Overpass query sequentially with a 30s cooldown, cache each
 // region's raw response to logs/ for resume-after-interrupt, then
 // upsert via the same osmId-keyed flow as the Tokyo script.
 //
 // Usage:
 //   DATABASE_URL='...' pnpm osm:import-global
-//   DATABASE_URL='...' pnpm osm:import-global --regions=oceania
+//   DATABASE_URL='...' pnpm osm:import-global --regions=oceania_nz
+//   DATABASE_URL='...' pnpm osm:import-global --regions=asia_japan,asia_se
 //   DATABASE_URL='...' pnpm osm:import-global --dry-run
 //
 // Production-run playbook: docs/osm-import-global.md
@@ -30,17 +33,43 @@ type Region = {
   bbox: [number, number, number, number]
 }
 
-// 7 continental bboxes. Ordering: smallest first so early interrupts
-// still capture at least the low-volume regions. Asia covers
-// Tokyo/Japan already-imported rows — upsert handles the overlap.
+// 15 regional bboxes. First 4 are the continent-sized queries that
+// already completed on the initial prod run (cached in logs/). The
+// other 11 are sub-bboxes replacing the 3 continents (Oceania /
+// Europe / Asia) that hit Overpass 504 on the big bbox — each
+// sub-bbox stays well below the server's implicit size/time limits.
+//
+// Overlaps are intentional where natural continent seams don't line
+// up (e.g. europe_russia_w vs russia_east over [42-68, 25-60]).
+// osmId is @unique in Toilet, so upsert absorbs duplicates cleanly.
+// Known overlaps:
+//   europe_russia_w ∩ russia_east    (Russia's European vs Asian parts)
+//   asia_japan      ∩ Tokyo 10k rows (M11 import — dedupe via osmId)
+//   oceania_pi      ∩ oceania_nz     (~ [-25..-33, 165..180] strip)
 const REGIONS: Region[] = [
-  { name: 'oceania', bbox: [-48, 110, 0, 180] },
+  // ── Already-imported continents (M12 prod batch 1) ──
   { name: 'south_america', bbox: [-56, -85, 15, -34] },
   { name: 'africa', bbox: [-35, -20, 38, 55] },
   { name: 'north_america', bbox: [15, -170, 72, -50] },
-  { name: 'europe', bbox: [35, -30, 72, 50] },
   { name: 'russia_east', bbox: [40, 25, 72, 180] },
-  { name: 'asia', bbox: [-12, 25, 55, 180] },
+
+  // ── Oceania sub-bboxes (was: oceania [-48, 110, 0, 180] → 504) ──
+  { name: 'oceania_au', bbox: [-44, 110, -10, 155] }, // Australia mainland
+  { name: 'oceania_nz', bbox: [-48, 165, -33, 180] }, // New Zealand
+  { name: 'oceania_pi', bbox: [-25, 155, 0, 180] }, // Pacific islands
+
+  // ── Europe sub-bboxes (was: europe [35, -30, 72, 50] → 504) ──
+  { name: 'europe_west', bbox: [35, -10, 58, 15] }, // UK / FR / DE-south / Iberia
+  { name: 'europe_nordic', bbox: [55, 4, 72, 32] }, // Nordics + RU-NW
+  { name: 'europe_east', bbox: [35, 15, 58, 50] }, // Eastern Europe + Balkans
+  { name: 'europe_russia_w', bbox: [42, 25, 68, 60] }, // Russia's European side
+
+  // ── Asia sub-bboxes (was: asia [-12, 25, 55, 180] → 504) ──
+  { name: 'asia_japan', bbox: [24, 122, 46, 146] }, // Japan + Korea
+  { name: 'asia_china', bbox: [18, 73, 54, 135] }, // China (largest; may 504 again → split further)
+  { name: 'asia_india', bbox: [6, 68, 37, 98] }, // India + Pakistan + Bangladesh
+  { name: 'asia_se', bbox: [-11, 92, 24, 141] }, // SE Asia
+  { name: 'asia_middle', bbox: [12, 25, 45, 73] }, // Middle East
 ]
 
 const BATCH_SIZE = 500
@@ -56,7 +85,10 @@ function toiletsOqlForBbox([s, w, n, e]: [number, number, number, number]): stri
   // out center; even though amenity=toilets is mostly nodes — some
   // OSM editors tag entire buildings as toilets via way, and the
   // centroid keeps them geocodable.
-  return `[out:json][timeout:300];
+  // Timeout 120s: sub-bboxes should return well under this; the
+  // original continent-sized queries used 300s but still hit 504
+  // on the public Overpass server's own limits.
+  return `[out:json][timeout:120];
 (
   node["amenity"="toilets"](${s},${w},${n},${e});
   way["amenity"="toilets"](${s},${w},${n},${e});
