@@ -1,14 +1,32 @@
 # 地图数据生成流程（toirepo）
 
-## 当前数据
+## 当前数据（M10 P2 切换后）
 
-- **来源**：Protomaps 公开每日构建 pmtiles（基于 OpenStreetMap）
-- **基准 build**：`20260418.pmtiles`（约 135 GB，2026-04-18 发布）
-- **覆盖**：东京都 23 区 + 首都圈（bbox `138.9,35.3,140.2,35.95`，west,south,east,north）
-- **Max zoom**：16
-- **托管**：Cloudflare R2 bucket `toirepo-tiles`，key `tokyo.pmtiles`
-- **客户端加载路径**：MapLibre GL JS + pmtiles.js，通过 pmtiles protocol
-  `pmtiles://{R2_PUBLIC_URL}/tokyo.pmtiles` 触发 HTTP Range 按需读取
+- **来源**：Protomaps 公开 pmtiles **sample dataset**（基于 OpenStreetMap，全球覆盖）
+- **URL**：`https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20240814.pmtiles`
+- **覆盖**：**全球**（M10 P2 从东京子集切到全球）
+- **客户端加载**：`public/map-style/toirepo-paper.json` source URL 硬编码；MapLibre GL JS + pmtiles.js 通过 `pmtiles://` protocol 触发 HTTP Range 按需读取
+- **带宽成本**：零（走 Protomaps 的 R2 public bucket，我们不付 egress）
+
+## 为什么切换（M10 P2 决策）
+
+旧方案（M3 设计 / M11 落地）是 R2 自托管东京子集 237MB pmtiles。iPhone 装机 + LAN 测试跑通后，M10 P2 部署前评估：
+
+1. **覆盖范围需要扩大**：M12 全球 toilet 数据计划要求底图先达到全球
+2. **维护成本**：自托管每季度需重跑 Planetiler / pmtiles extract 工作流（docs/MAP_DATA.md 下半段记载）
+3. **带宽风险**：生产流量未知前自托管有 R2 egress 成本悬疑（虽 R2 号称免费 egress 但大流量下仍有 tiered 限制）
+4. **Protomaps 公共 sample dataset 可接受**：Protomaps 官方允许 demo / 中小规模使用；MVP 阶段流量在其容忍度内
+
+切换保留 R2 的 `toilet-tiles` bucket + `tokyo.pmtiles` object 作为零成本 fallback，M12 时评估是否清理。
+
+## 旧方案保留档案（仅供 fallback 与参考）
+
+以下章节描述**原自托管流水线**，M10 P2 后**不再常用**。保留用于：
+
+- 如果未来 Protomaps 公共 URL 废弃或有性能问题，快速切回自托管
+- 未来切到 Planetiler 自建流水线时的参考
+
+---
 
 ## 方案背景
 

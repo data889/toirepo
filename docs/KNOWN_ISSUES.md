@@ -5,6 +5,50 @@
 
 ---
 
+## M10 P2 追踪 (2026-04-22)
+
+### GeolocateControl 无方向跟随箭头
+
+**背景**：Ming 要求 `showUserHeading: true` 让定位点跟随手机朝向旋转为箭头。
+maplibre-gl 5.x 的 `GeolocateControlOptions` 没有此选项——`showUserHeading`
+是 Mapbox GL 独占的功能，MapLibre 未移植。当前实装仅启用 `trackUserLocation:
+true`（跟随用户移动重新 center）+ 纯圆点标记。
+**影响**：iPhone 用户看不到朝向箭头，但位置跟随 + 走动时地图 re-center 正常。
+**未来路径**（M12 polish 或等上游）：
+1. 自建 GeolocateControl 子类 + 监听 `DeviceOrientationEvent`，用 rotate CSS transform 转圆点为箭头。iOS 要 `DeviceMotionEvent.requestPermission()` 用户手势才能拿到陀螺仪权限
+2. 或等 maplibre-gl 上游加 `showUserHeading`（有 open feature request）
+
+### R2 `tokyo.pmtiles` 残留 object
+
+**背景**：M10 P2 把 basemap 切到 Protomaps 公网后，R2 `toirepo-tiles` bucket
+里的 `tokyo.pmtiles` (237MB) 不再有消费者。
+**影响**：零成本（R2 存储费可忽略）。但 bucket 有 dead data 不整洁。
+**清理时机**：M12 之前评估。如果 M12 决定切回自托管 Planetiler，这个文件用作
+回退起点；如果 M12 继续用 Protomaps，清理即可。
+
+### Protomaps 公网 sample dataset 依赖
+
+**背景**：basemap source 指向 `https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20240814.pmtiles`。Protomaps 官方把此 URL 标为 sample / demo 用途。
+**风险**：
+1. Protomaps 可能随时 rotate sample URL（snapshot 是 2024-08-14 静态版本，过时风险）
+2. 流量压过大（万级 DAU）可能被 Protomaps 拉黑或限流
+3. 非实时更新——OSM 数据是 2024-08-14 冻结
+**缓解路径**：
+- MVP 流量下问题很小，观察 M10 P2 上线后用户量
+- 切 `api.protomaps.com/tiles` 付费方案（需注册 + key + env `NEXT_PUBLIC_PROTOMAPS_KEY`）
+- 或自建 Planetiler 流水线（docs/MAP_DATA.md 下半段保留了旧流程）
+
+### Toilet 数据仍仅东京 (M12 对应)
+
+**背景**：底图已全球化但 `toilet.list` 返回全量东京 10,106 条。用户 zoom out
+到全球时看到空白地图 + 东京仍有密集 marker。
+**UX 影响**：非东京访客第一次打开会困惑（"这是东京地图？"）。
+**计划**：M12 milestone 处理（docs/ROADMAP.md "M12 · 全球 toilet 数据" 占位已登记）。
+**MVP 态度**：接受。M10 上线时用首页引导文案说明"从东京起步，其他城市陆续
+覆盖"。
+
+---
+
 ## M7 P2.1 追踪 (2026-04-21)
 
 ### PENDING own-submission overlay 推迟到 M10 polish

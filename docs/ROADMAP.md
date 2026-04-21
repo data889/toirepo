@@ -40,6 +40,34 @@ M11 真正的产品闭环 —— 10,106 条 OSM 数据装进 Ming 手机 home sc
 1. **M7 评论/确认/申诉** — 社交层，无外部依赖可立即开工
 2. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖，需 DeepL API key
 3. **M10 Vercel 部署**（含 M9 P2 SEO + prod R2 CORS 切换）— 对外上线
+4. **M12 全球 toilet 数据**（新增，2026-04-22 登记）— 底图已全球（Protomaps 公网），toilet 数据仍仅东京 10,106 条
+
+---
+
+## M12 · 全球 toilet 数据（占位）
+
+**触发时机**：M10 P2 将底图切到 Protomaps 公网后，用户可 zoom out 看到全球地图但 marker 只出现在东京 bbox 内。该 UX 落差需在正式开放注册 + 海外用户到访前处理。
+
+**预期工作**：
+
+1. **客户端**：MapCanvas 加 bbox-aware 查询——每次 `moveend` 按 viewport bounds 触发 `toilet.listByBbox`，不再一次拉全部
+2. **服务端**：`toilet.listByBbox({ bbox, limit })` 新 procedure 或扩展现有 `list` 支持 bbox 参数（目前已有 bbox 参数，缺客户端调用）
+3. **数据源**：按需查询 Overpass API 拉 viewport 内 OSM 厕所 + 写入本地 Toilet 表增量 upsert（osmId 去重）
+4. **缓存层**：Upstash Redis 缓存 bbox→toilets 1 小时，避免同一区域短时间重复打 Overpass
+5. **审核成本**：按 `moderateToilet` 单次 $0.003 估算，非东京首次访问 bbox 若有 500 条 OSM 数据，Haiku 成本 $1.5——需要 rate-limit 新地区首次同步
+6. **备选方案**：一次性预导入热门城市（东京 / 大阪 / 台北 / 曼谷 / 首尔 / 纽约 / 伦敦 / 巴黎），其他区域 lazy
+
+**外部依赖**：无新账号需求。Overpass 公网 API free tier 够 MVP。
+
+**何时开工**：M10 部署后一周内视用户反馈。
+
+---
+
+## M10 P2 遗留项（已登记 KNOWN_ISSUES）
+
+- **GeolocateControl 箭头定位**：maplibre-gl 5.x 不支持 `showUserHeading`（Mapbox GL 独有）。方向跟随箭头需自建 DeviceOrientation 控件，留 M12 polish 或等 MapLibre 上游支持
+- **R2 tokyo.pmtiles 残留**：M10 P2 切换到 Protomaps 公网后 R2 的 `tokyo.pmtiles` object 成为 dead data，零成本但应清理
+- **Protomaps 公网依赖**：MVP 接受 Protomaps sample dataset demo 用途，流量增长后评估切 Planetiler 自建或 Protomaps 付费方案
 
 M7 可立即开工。M8 需 Ming 先申请 DeepL Free key（10 min 注册）。M10 需一堆
 外部账号（Vercel / Supabase / 域名），见各自章节。
