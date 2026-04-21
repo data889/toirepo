@@ -229,6 +229,52 @@
       }
     }
   },
+  "me": {
+    "rootTitle": "マイページ",
+    "tabs": {
+      "submissions": "投稿",
+      "reviews": "レビュー",
+      "appeals": "申し立て"
+    },
+    "reviews": {
+      "loading": "読み込み中…",
+      "loadError": "読み込みに失敗しました。時間をおいて再試行してください",
+      "emptyHeading": "まだレビューがありません",
+      "emptyBody": "トイレの詳細ページからレビューを書けます。",
+      "untitledToilet": "（無題のトイレ）",
+      "view": "表示",
+      "delete": "削除",
+      "confirmDelete": "このレビューを削除しますか？",
+      "rejectReasonsHeader": "却下理由：",
+      "toastDeleted": "レビューを削除しました",
+      "status": {
+        "PENDING": "審査中",
+        "APPROVED": "承認済み",
+        "REJECTED": "却下",
+        "HIDDEN": "非表示"
+      },
+      "error": {
+        "UNAUTHORIZED": "ログインが必要です",
+        "FORBIDDEN": "この操作の権限がありません",
+        "generic": "操作に失敗しました。再試行してください"
+      }
+    },
+    "appeals": {
+      "loading": "読み込み中…",
+      "loadError": "読み込みに失敗しました。時間をおいて再試行してください",
+      "emptyHeading": "まだ申し立てがありません",
+      "emptyBody": "トイレの詳細ページや投稿一覧から申し立てができます。",
+      "untitledToilet": "（無題のトイレ）",
+      "targetMissing": "対象トイレが存在しません",
+      "upheldEditApplied": "適用された変更：{fields}",
+      "adminNoteHeader": "管理者の裁定コメント（{date}）",
+      "status": {
+        "PENDING": "審査中",
+        "UPHELD": "支持",
+        "DISMISSED": "却下"
+      }
+    }
+  },
   "submissions": {
     "title": "投稿履歴",
     "empty": {

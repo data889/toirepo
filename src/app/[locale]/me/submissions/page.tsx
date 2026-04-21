@@ -1,11 +1,13 @@
-import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { redirect } from '@/i18n/navigation'
-import { auth } from '@/server/auth'
-import { AppHeader } from '@/components/layout/AppHeader'
-import { MySubmissionsList } from '@/components/me/MySubmissionsList'
 import type { Locale } from '@/i18n/routing'
 
-export default async function MySubmissionsPage({
+// M7 P2.3: /me became a tabbed root page with submissions / reviews /
+// appeals as ?tab= variants. This subpath stays for backward
+// compatibility with external links (e.g. SubmitForm's redirect after
+// successful create) — forwards to /me?tab=submissions, preserving
+// the just_submitted query param.
+
+export default async function MySubmissionsRedirect({
   params,
   searchParams,
 }: {
@@ -13,25 +15,10 @@ export default async function MySubmissionsPage({
   searchParams: Promise<{ just_submitted?: string }>
 }) {
   const { locale } = await params
-  setRequestLocale(locale)
-
-  const session = await auth()
-  if (!session?.user) {
-    redirect({ href: '/auth/signin', locale: locale as Locale })
-  }
-
   const sp = await searchParams
-  const t = await getTranslations('submissions')
-
-  return (
-    <>
-      <AppHeader />
-      <main className="bg-paper text-ink-primary min-h-screen">
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-          <h1 className="text-ink-primary mb-6 text-2xl font-medium sm:text-3xl">{t('title')}</h1>
-          <MySubmissionsList justSubmittedSlug={sp.just_submitted ?? null} />
-        </div>
-      </main>
-    </>
-  )
+  const justSubmitted = sp.just_submitted
+  const href = justSubmitted
+    ? `/me?tab=submissions&just_submitted=${justSubmitted}`
+    : '/me?tab=submissions'
+  redirect({ href: href as never, locale: locale as Locale })
 }

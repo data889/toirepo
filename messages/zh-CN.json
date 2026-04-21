@@ -229,6 +229,52 @@
       }
     }
   },
+  "me": {
+    "rootTitle": "我的页面",
+    "tabs": {
+      "submissions": "我的厕所",
+      "reviews": "我的评论",
+      "appeals": "我的申诉"
+    },
+    "reviews": {
+      "loading": "加载中…",
+      "loadError": "加载失败，请稍后重试",
+      "emptyHeading": "还没有评论",
+      "emptyBody": "在厕所详情页可以写评论。",
+      "untitledToilet": "（未命名厕所）",
+      "view": "查看",
+      "delete": "删除",
+      "confirmDelete": "确定删除这条评论？",
+      "rejectReasonsHeader": "审核未通过的原因：",
+      "toastDeleted": "评论已删除",
+      "status": {
+        "PENDING": "审核中",
+        "APPROVED": "已通过",
+        "REJECTED": "未通过",
+        "HIDDEN": "已隐藏"
+      },
+      "error": {
+        "UNAUTHORIZED": "请先登录",
+        "FORBIDDEN": "你没有权限执行该操作",
+        "generic": "操作失败，请重试"
+      }
+    },
+    "appeals": {
+      "loading": "加载中…",
+      "loadError": "加载失败，请稍后重试",
+      "emptyHeading": "还没有申诉",
+      "emptyBody": "在厕所详情页或我的厕所页可以提交申诉。",
+      "untitledToilet": "（未命名厕所）",
+      "targetMissing": "目标厕所已不存在",
+      "upheldEditApplied": "已应用修改：{fields}",
+      "adminNoteHeader": "admin 裁决说明（{date}）",
+      "status": {
+        "PENDING": "审核中",
+        "UPHELD": "已支持",
+        "DISMISSED": "已驳回"
+      }
+    }
+  },
   "submissions": {
     "title": "我的提交",
     "empty": {

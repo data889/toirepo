@@ -229,6 +229,52 @@
       }
     }
   },
+  "me": {
+    "rootTitle": "My profile",
+    "tabs": {
+      "submissions": "Toilets",
+      "reviews": "Reviews",
+      "appeals": "Appeals"
+    },
+    "reviews": {
+      "loading": "Loading…",
+      "loadError": "Failed to load, please try again later",
+      "emptyHeading": "No reviews yet",
+      "emptyBody": "Write a review from any toilet detail page.",
+      "untitledToilet": "(Untitled toilet)",
+      "view": "View",
+      "delete": "Delete",
+      "confirmDelete": "Delete this review?",
+      "rejectReasonsHeader": "Rejection reasons:",
+      "toastDeleted": "Review deleted",
+      "status": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected",
+        "HIDDEN": "Hidden"
+      },
+      "error": {
+        "UNAUTHORIZED": "Please sign in",
+        "FORBIDDEN": "You don't have permission",
+        "generic": "Action failed, please retry"
+      }
+    },
+    "appeals": {
+      "loading": "Loading…",
+      "loadError": "Failed to load, please try again later",
+      "emptyHeading": "No appeals yet",
+      "emptyBody": "File an appeal from a toilet detail page or your submissions list.",
+      "untitledToilet": "(Untitled toilet)",
+      "targetMissing": "Target toilet missing",
+      "upheldEditApplied": "Applied changes: {fields}",
+      "adminNoteHeader": "Admin resolution ({date})",
+      "status": {
+        "PENDING": "Pending",
+        "UPHELD": "Upheld",
+        "DISMISSED": "Dismissed"
+      }
+    }
+  },
   "submissions": {
     "title": "My submissions",
     "empty": {
