@@ -34,19 +34,21 @@ type Region = {
   bbox: [number, number, number, number]
 }
 
-// 15 regional bboxes. First 4 are the continent-sized queries that
-// already completed on the initial prod run (cached in logs/). The
-// other 11 are sub-bboxes replacing the 3 continents (Oceania /
-// Europe / Asia) that hit Overpass 504 on the big bbox — each
+// 19 regional bboxes. First 4 are the continent-sized queries that
+// completed on the initial prod run; the rest are sub-bboxes that
+// replace continents which hit Overpass 504 on the big bbox. Each
 // sub-bbox stays well below the server's implicit size/time limits.
 //
 // Overlaps are intentional where natural continent seams don't line
 // up (e.g. europe_russia_w vs russia_east over [42-68, 25-60]).
 // osmId is @unique in Toilet, so upsert absorbs duplicates cleanly.
 // Known overlaps:
-//   europe_russia_w ∩ russia_east    (Russia's European vs Asian parts)
-//   asia_japan      ∩ Tokyo 10k rows (M11 import — dedupe via osmId)
-//   oceania_pi      ∩ oceania_nz     (~ [-25..-33, 165..180] strip)
+//   europe_russia_w ∩ russia_east         (Russia's European vs Asian parts)
+//   asia_japan      ∩ Tokyo 10k rows      (M11 import — dedupe via osmId)
+//   oceania_pi      ∩ oceania_nz          (~ [-25..-33, 165..180] strip)
+//   europe_fr_be_lux ∩ europe_uk_ie       (Channel strip ~[49..51, -5..2])
+//   europe_alpine_it ∩ europe_fr_be_lux   (SE France ~[41..49, 5..8])
+//   europe_alpine_it ∩ europe_de          (Alps ~[47..49, 5..15])
 const REGIONS: Region[] = [
   // ── Already-imported continents (M12 prod batch 1) ──
   { name: 'south_america', bbox: [-56, -85, 15, -34] },
@@ -59,8 +61,16 @@ const REGIONS: Region[] = [
   { name: 'oceania_nz', bbox: [-48, 165, -33, 180] }, // New Zealand
   { name: 'oceania_pi', bbox: [-25, 155, 0, 180] }, // Pacific islands
 
-  // ── Europe sub-bboxes (was: europe [35, -30, 72, 50] → 504) ──
-  { name: 'europe_west', bbox: [35, -10, 58, 15] }, // UK / FR / DE-south / Iberia
+  // ── Europe sub-bboxes ──
+  // Original europe_west [35, -10, 58, 15] silent-0-returned on
+  // Overpass (504 masked as HTTP 200 + empty elements[]), wiping
+  // London / Paris / Berlin / Amsterdam / Rome / Madrid coverage.
+  // Split into 5 country-level bboxes ≤10°×10° each.
+  { name: 'europe_uk_ie', bbox: [49, -10, 61, 2] }, // UK + Ireland
+  { name: 'europe_fr_be_lux', bbox: [41, -5, 51, 8] }, // France + BE + LU + NL
+  { name: 'europe_de', bbox: [47, 5, 55, 15] }, // Germany
+  { name: 'europe_iberia', bbox: [35, -10, 44, 4] }, // Spain + Portugal
+  { name: 'europe_alpine_it', bbox: [36, 5, 49, 19] }, // Italy + CH + AT + SI + HR
   { name: 'europe_nordic', bbox: [55, 4, 72, 32] }, // Nordics + RU-NW
   { name: 'europe_east', bbox: [35, 15, 58, 50] }, // Eastern Europe + Balkans
   { name: 'europe_russia_w', bbox: [42, 25, 68, 60] }, // Russia's European side
@@ -145,7 +155,16 @@ async function fetchRegion(region: Region, useCache: boolean): Promise<OverpassR
   const cachePath = join(LOGS_DIR, `osm-global-${region.name}.json`)
   if (useCache && existsSync(cachePath)) {
     console.log(`   [cache] ${region.name} → ${cachePath}`)
-    return JSON.parse(readFileSync(cachePath, 'utf-8')) as OverpassResponse
+    const cached = JSON.parse(readFileSync(cachePath, 'utf-8')) as OverpassResponse
+    // Repeat the silent-0 warning on cache hits too so Ming sees it
+    // even when re-running without --no-cache on a previously-poisoned
+    // region file (europe_west was the first one we caught this with).
+    if (cached.elements.length === 0) {
+      console.warn(
+        `   ⚠️  ${region.name}: cached response has 0 elements. If this region has known coverage (UK / FR / DE / etc.), the cache likely captured a silent Overpass 504. Delete ${cachePath} and rerun, or narrow the bbox further.`,
+      )
+    }
+    return cached
   }
   console.log(
     `   [net] ${region.name} bbox=[${region.bbox.join(',')}] — this may take 2-5 min on large continents`,
@@ -154,6 +173,18 @@ async function fetchRegion(region: Region, useCache: boolean): Promise<OverpassR
   mkdirSync(LOGS_DIR, { recursive: true })
   writeFileSync(cachePath, JSON.stringify(response))
   console.log(`   [cached] ${region.name}: ${response.elements.length} elements → ${cachePath}`)
+
+  // Overpass has a failure mode where a timeout returns HTTP 200 with
+  // an empty `elements[]` array (no error field) instead of 504. On a
+  // bbox that must have coverage (anything ≥1°×1° on a populated
+  // continent), 0 elements is almost certainly a silent timeout. Warn
+  // but don't abort — if this is a genuinely empty region (tiny Pacific
+  // atoll, Antarctica) the next region should still run.
+  if (response.elements.length === 0) {
+    console.warn(
+      `   ⚠️  ${region.name}: 0 elements returned. Possible silent Overpass timeout. Recommended action: delete ${cachePath} and retry later, or split the bbox further.`,
+    )
+  }
   return response
 }
 
