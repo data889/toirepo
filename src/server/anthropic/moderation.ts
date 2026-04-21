@@ -11,10 +11,13 @@ import { getAnthropicClient, MODERATION_MODEL } from './client'
 import {
   MODERATION_SYSTEM_PROMPT,
   REVIEW_MODERATION_SYSTEM_PROMPT,
+  buildAppealSystemPrompt,
   parseModerationResponse,
   parseReviewModerationResponse,
+  parseAppealModerationResponse,
   type ModerationResult,
   type ReviewModerationResult,
+  type AppealModerationResult,
 } from './moderation-prompt'
 import { db } from '@/server/db'
 import { bucketName, getS3 } from '@/server/r2/client'
@@ -229,6 +232,98 @@ export async function moderateReview(reviewId: string): Promise<ReviewModeration
   }
 
   const result = parseReviewModerationResponse(textBlock.text)
+  return {
+    result,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+    model: response.model,
+    rawText: textBlock.text,
+  }
+}
+
+// ============================================================
+// M7 P1.5 · Appeal moderation (text + optional evidence photos)
+// ============================================================
+
+export interface AppealModerationOutput {
+  result: AppealModerationResult
+  usage: { inputTokens: number; outputTokens: number }
+  model: string
+  rawText: string
+}
+
+/**
+ * Pre-screen one Appeal via Haiku 4.5. Advisory only — result is
+ * written to Appeal.aiDecision for admin reference; nothing changes
+ * Appeal.status automatically.
+ */
+export async function moderateAppeal(appealId: string): Promise<AppealModerationOutput> {
+  const appeal = await db.appeal.findUnique({
+    where: { id: appealId },
+    select: {
+      id: true,
+      type: true,
+      reason: true,
+      evidence: true,
+      proposedChanges: true,
+      targetToilet: {
+        select: { name: true, address: true, type: true, floor: true, status: true },
+      },
+    },
+  })
+  if (!appeal) throw new Error(`Appeal ${appealId} not found`)
+
+  const s3 = getS3()
+  const bucket = bucketName('photos')
+  const evidenceKeys = appeal.evidence.slice(0, MAX_PHOTOS_PER_CALL)
+  const imageBlocks = await Promise.all(
+    evidenceKeys.map(async (key) => {
+      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key })
+      const response = await s3.send(cmd)
+      const bytes = await response.Body?.transformToByteArray()
+      if (!bytes) throw new Error(`Failed to fetch evidence for key=${key}`)
+      return {
+        type: 'image' as const,
+        source: {
+          type: 'base64' as const,
+          media_type: PHOTO_MEDIA_TYPE,
+          data: Buffer.from(bytes).toString('base64'),
+        },
+      }
+    }),
+  )
+
+  const description = [
+    `AppealType: ${appeal.type}`,
+    `Reason: ${JSON.stringify(appeal.reason)}`,
+    `ProposedChanges: ${appeal.proposedChanges ? JSON.stringify(appeal.proposedChanges) : '(none)'}`,
+    `TargetToilet snapshot: ${JSON.stringify(appeal.targetToilet ?? '(missing)')}`,
+    `Evidence photos: ${evidenceKeys.length}`,
+    '',
+    'Pre-screen this appeal and output the strict JSON advisory result.',
+  ].join('\n')
+
+  const anthropic = getAnthropicClient()
+  const response = await anthropic.messages.create({
+    model: MODERATION_MODEL,
+    max_tokens: 512,
+    system: buildAppealSystemPrompt(appeal.type),
+    messages: [
+      {
+        role: 'user',
+        content: [...imageBlocks, { type: 'text', text: description }],
+      },
+    ],
+  })
+
+  const textBlock = response.content.find((b) => b.type === 'text')
+  if (!textBlock || textBlock.type !== 'text') {
+    throw new Error('Appeal moderation response contained no text block')
+  }
+
+  const result = parseAppealModerationResponse(textBlock.text)
   return {
     result,
     usage: {

@@ -240,3 +240,125 @@ export function parseReviewModerationResponse(text: string): ReviewModerationRes
     issues: issues as ReviewModerationResult['issues'],
   }
 }
+
+// ============================================================
+// M7 P1.5 · Appeal moderation
+// ============================================================
+
+// Haiku's job on Appeals is ADVISORY — it writes a pre-screen into
+// Appeal.aiDecision for admin reference. Unlike Toilet / Review, we
+// never auto-resolve from Haiku's output. The admin always decides.
+//
+// System prompt is one template with AppealType interpolated so Haiku
+// sees the exact semantic (e.g. SUGGEST_EDIT vs REPORT_NO_TOILET) and
+// can tune its reasoning without needing six near-duplicate prompts.
+
+export function buildAppealSystemPrompt(appealType: string): string {
+  return `You are a content moderation assistant for toirepo, reviewing a user-submitted APPEAL of type "${appealType}".
+
+Appeal types and what they mean:
+- OWN_SUBMISSION_REJECT: user appealing their own submission that got REJECTED, asking for reconsideration
+- REPORT_DATA_ERROR: user claims an APPROVED toilet has factually wrong data
+- SUGGEST_EDIT: user proposes a field-level edit (name / address / type / floor / hours) to an APPROVED toilet — payload includes proposedChanges
+- REPORT_CLOSED: user claims the business is physically closed
+- REPORT_NO_TOILET: user claims the business exists but has no usable toilet
+- SELF_SOFT_DELETE: user wants their own submission hidden
+
+You output STRICT JSON, no markdown, no prose. Schema:
+
+{
+  "decision": "APPROVED" | "REJECTED" | "NEEDS_HUMAN",
+  "confidence": number,   // 0.0 to 1.0
+  "reasons": string[],    // up to 5 short reason phrases, English
+  "issues": {
+    "reason_is_spam_or_gibberish": boolean,
+    "reason_unrelated_to_type": boolean,
+    "proposed_changes_suspicious": boolean,   // only relevant for SUGGEST_EDIT
+    "evidence_looks_fake": boolean,
+    "personally_identifiable_info": boolean,
+    "offensive_or_hateful": boolean
+  }
+}
+
+Decision guidance (REMEMBER: your output is advisory — admin decides the actual outcome):
+- "APPROVED" = looks legitimate; admin is likely to uphold
+- "REJECTED" = looks spam / gibberish / malicious — admin likely to dismiss
+- "NEEDS_HUMAN" = genuinely ambiguous, requires human judgment
+
+Be LENIENT on:
+- Short reasons that are clear (e.g. "店已搬迁" is fine for REPORT_CLOSED)
+- Complaints about service in reports of closure / no-toilet
+- SUGGEST_EDIT proposing minor spelling / transliteration fixes
+
+Be STRICT on:
+- Gibberish reasons ("asdfasdf")
+- Reasons clearly unrelated to the appeal type (reporting a cafe as CLOSED because "coffee is bad")
+- SUGGEST_EDIT proposing obviously malicious strings (offensive names, fake addresses)
+- PII in reason / proposedChanges
+
+Do not wrap in markdown fences. Output JSON only.`
+}
+
+export interface AppealModerationResult {
+  decision: 'APPROVED' | 'REJECTED' | 'NEEDS_HUMAN'
+  confidence: number
+  reasons: string[]
+  issues: {
+    reason_is_spam_or_gibberish: boolean
+    reason_unrelated_to_type: boolean
+    proposed_changes_suspicious: boolean
+    evidence_looks_fake: boolean
+    personally_identifiable_info: boolean
+    offensive_or_hateful: boolean
+  }
+}
+
+export function parseAppealModerationResponse(text: string): AppealModerationResult {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim()
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch (e) {
+    throw new Error(`Appeal moderation response is not valid JSON: ${(e as Error).message}`)
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Appeal moderation response is not a JSON object')
+  }
+  const obj = parsed as Record<string, unknown>
+  if (typeof obj.decision !== 'string' || !DECISIONS.includes(obj.decision as never)) {
+    throw new Error(`Invalid decision: ${JSON.stringify(obj.decision)}`)
+  }
+  if (typeof obj.confidence !== 'number' || obj.confidence < 0 || obj.confidence > 1) {
+    throw new Error(`Invalid confidence: ${JSON.stringify(obj.confidence)}`)
+  }
+  if (!Array.isArray(obj.reasons) || obj.reasons.some((r) => typeof r !== 'string')) {
+    throw new Error('reasons must be an array of strings')
+  }
+  if (!obj.issues || typeof obj.issues !== 'object') {
+    throw new Error('issues must be an object')
+  }
+  const issues = obj.issues as Record<string, unknown>
+  const requiredIssueKeys = [
+    'reason_is_spam_or_gibberish',
+    'reason_unrelated_to_type',
+    'proposed_changes_suspicious',
+    'evidence_looks_fake',
+    'personally_identifiable_info',
+    'offensive_or_hateful',
+  ] as const
+  for (const key of requiredIssueKeys) {
+    if (typeof issues[key] !== 'boolean') {
+      throw new Error(`issues.${key} must be boolean`)
+    }
+  }
+  return {
+    decision: obj.decision as AppealModerationResult['decision'],
+    confidence: obj.confidence,
+    reasons: obj.reasons as string[],
+    issues: issues as AppealModerationResult['issues'],
+  }
+}

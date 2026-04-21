@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import type { Prisma } from '@/generated/prisma'
 import { createTRPCRouter, adminProcedure } from '../../trpc'
 import { recalculateTrustLevel } from '@/server/trust/autoUpgrade'
@@ -134,4 +135,217 @@ export const adminRouter = createTRPCRouter({
 
     return { id: toilet.id, status: toilet.status }
   }),
+
+  // ==========================================================
+  // M7 P1.5 · Appeal admin queue
+  // ==========================================================
+
+  listAppeals: adminProcedure
+    .input(
+      z.object({
+        type: z
+          .enum([
+            'OWN_SUBMISSION_REJECT',
+            'REPORT_DATA_ERROR',
+            'SUGGEST_EDIT',
+            'REPORT_CLOSED',
+            'REPORT_NO_TOILET',
+            'SELF_SOFT_DELETE',
+          ])
+          .optional(),
+        status: z.enum(['PENDING', 'UPHELD', 'DISMISSED']).default('PENDING'),
+        limit: z.number().int().min(1).max(50).default(20),
+        cursor: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const where: Prisma.AppealWhereInput = { status: input.status }
+      if (input.type) where.type = input.type
+      const rows = await ctx.db.appeal.findMany({
+        where,
+        select: {
+          id: true,
+          type: true,
+          reason: true,
+          evidence: true,
+          proposedChanges: true,
+          status: true,
+          aiDecision: true,
+          aiConfidence: true,
+          aiReasons: true,
+          createdAt: true,
+          user: { select: { id: true, email: true, name: true, trustLevel: true } },
+          targetToilet: {
+            select: {
+              id: true,
+              slug: true,
+              status: true,
+              name: true,
+              address: true,
+              type: true,
+              floor: true,
+              latitude: true,
+              longitude: true,
+              osmId: true,
+              submittedById: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: input.limit + 1,
+        cursor: input.cursor ? { id: input.cursor } : undefined,
+        skip: input.cursor ? 1 : 0,
+      })
+      let nextCursor: string | undefined
+      if (rows.length > input.limit) {
+        const next = rows.pop()
+        nextCursor = next?.id
+      }
+      return { appeals: rows, nextCursor }
+    }),
+
+  /**
+   * Admin decision on any Appeal. UPHELD side effects by type:
+   *   OWN_SUBMISSION_REJECT → Toilet REJECTED → APPROVED (+ publishedAt)
+   *   REPORT_DATA_ERROR     → Toilet APPROVED → REJECTED
+   *   SUGGEST_EDIT          → Toilet fields patched from proposedChanges
+   *                           + lastCommunityEditAt/By recorded. If the
+   *                           target is an OSM row and originalOsmTags
+   *                           is null, snapshot the current tags first.
+   *   REPORT_CLOSED         → Toilet APPROVED → CLOSED (stays visible)
+   *   REPORT_NO_TOILET      → Toilet APPROVED → NO_TOILET_HERE (stays visible)
+   *   SELF_SOFT_DELETE      → Toilet → REJECTED (hard hide; row kept)
+   *
+   * DISMISSED: no target mutation, only the Appeal row updates.
+   */
+  resolveAppeal: adminProcedure
+    .input(
+      z.object({
+        appealId: z.string().min(1),
+        decision: z.enum(['UPHELD', 'DISMISSED']),
+        note: z.string().max(2000).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appeal = await ctx.db.appeal.findUnique({
+        where: { id: input.appealId },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          targetToiletId: true,
+          userId: true,
+          proposedChanges: true,
+        },
+      })
+      if (!appeal) throw new TRPCError({ code: 'NOT_FOUND' })
+      if (appeal.status !== 'PENDING') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.alreadyResolved' })
+      }
+
+      await ctx.db.$transaction(async (tx) => {
+        await tx.appeal.update({
+          where: { id: appeal.id },
+          data: {
+            status: input.decision,
+            resolutionNote: input.note ?? null,
+            resolvedById: ctx.user.id,
+            resolvedAt: new Date(),
+          },
+        })
+
+        if (input.decision !== 'UPHELD' || !appeal.targetToiletId) return
+
+        switch (appeal.type) {
+          case 'OWN_SUBMISSION_REJECT': {
+            await tx.toilet.update({
+              where: { id: appeal.targetToiletId },
+              data: { status: 'APPROVED', publishedAt: new Date() },
+            })
+            break
+          }
+          case 'REPORT_DATA_ERROR':
+          case 'SELF_SOFT_DELETE': {
+            await tx.toilet.update({
+              where: { id: appeal.targetToiletId },
+              data: { status: 'REJECTED' },
+            })
+            break
+          }
+          case 'REPORT_CLOSED': {
+            await tx.toilet.update({
+              where: { id: appeal.targetToiletId },
+              data: { status: 'CLOSED' },
+            })
+            break
+          }
+          case 'REPORT_NO_TOILET': {
+            await tx.toilet.update({
+              where: { id: appeal.targetToiletId },
+              data: { status: 'NO_TOILET_HERE' },
+            })
+            break
+          }
+          case 'SUGGEST_EDIT': {
+            const pc = appeal.proposedChanges as Record<string, unknown> | null
+            if (!pc) break
+
+            // Snapshot upstream OSM tags on the first community edit —
+            // lets future rollback or OSM feedback keep provenance.
+            const current = await tx.toilet.findUnique({
+              where: { id: appeal.targetToiletId },
+              select: {
+                osmId: true,
+                originalOsmTags: true,
+                name: true,
+                address: true,
+                type: true,
+                floor: true,
+              },
+            })
+
+            const patch: Prisma.ToiletUpdateInput = {
+              lastCommunityEditAt: new Date(),
+              lastCommunityEditByUser: { connect: { id: appeal.userId } },
+            }
+
+            if (current?.osmId && current.originalOsmTags === null) {
+              patch.originalOsmTags = {
+                name: current.name,
+                address: current.address,
+                type: current.type,
+                floor: current.floor,
+              } as unknown as Prisma.InputJsonValue
+            }
+
+            if (typeof pc.name === 'string') {
+              const currentName = (current?.name as Record<string, string> | null) ?? {}
+              patch.name = { ...currentName, en: pc.name } as unknown as Prisma.InputJsonValue
+            }
+            if (typeof pc.address === 'string') {
+              const currentAddress = (current?.address as Record<string, string> | null) ?? {}
+              patch.address = {
+                ...currentAddress,
+                en: pc.address,
+              } as unknown as Prisma.InputJsonValue
+            }
+            if (typeof pc.type === 'string') {
+              patch.type = pc.type as 'PUBLIC' | 'MALL' | 'KONBINI' | 'PURCHASE'
+            }
+            if (typeof pc.floor === 'string') patch.floor = pc.floor
+            // hours field not yet on Toilet schema — P1.5 parks it here
+            // so the UI can show "suggested hours" in the Appeal payload
+            // even before we add a real column (M8+).
+
+            await tx.toilet.update({
+              where: { id: appeal.targetToiletId },
+              data: patch,
+            })
+            break
+          }
+        }
+      })
+
+      return { id: appeal.id, status: input.decision }
+    }),
 })
