@@ -13,7 +13,21 @@ export default function HomePage() {
         display: 'flex',
         flexDirection: 'column',
         width: '100vw',
-        height: '100vh',
+        // 100dvh (dynamic viewport height) tracks the visible area as
+        // the browser's URL bar shows/hides. iPhone Chrome was
+        // computing 100vh LARGER than the visible area on first
+        // paint, pushing <main> beyond the viewport and anchoring
+        // initial scroll position past the top — so the <header>
+        // below was painted but off-screen above the URL bar. iOS
+        // Safari (bottom URL bar on recent versions) didn't hit this.
+        // 100dvh + overflow:hidden fits main exactly in the visible
+        // area; header sits at y=0 of visible viewport on both
+        // browsers.
+        height: '100dvh',
+        // Push content below the notch / status bar on notched iPhones.
+        // env(safe-area-inset-top) is 0 on non-notched hardware so
+        // this is a no-op fallback on desktop / Android.
+        paddingTop: 'env(safe-area-inset-top)',
         overflow: 'hidden',
       }}
     >

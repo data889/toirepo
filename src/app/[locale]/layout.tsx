@@ -85,6 +85,11 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  // viewport-fit=cover tells iOS to extend the layout under the notch
+  // / home indicator. Pages that need to avoid UI-safe areas pull
+  // env(safe-area-inset-*) into padding (see [locale]/page.tsx top
+  // padding for the map header).
+  viewportFit: 'cover',
 }
 
 export function generateStaticParams() {
