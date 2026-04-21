@@ -57,6 +57,34 @@
       "backToMap": "地図に戻る",
       "comingSoon": "写真・レビュー・確認情報などの詳細は今後追加されます。",
       "coordinates": "座標:{lat}, {lng}"
+    },
+    "status": {
+      "closed": "閉店",
+      "noToilet": "この店舗にトイレなし",
+      "hidden": "非表示"
+    },
+    "source": {
+      "osm": "OSM",
+      "user": "ユーザー投稿"
+    },
+    "confirmation": {
+      "count": "{count} 人が確認",
+      "selfConfirmed": "確認済み",
+      "action": "確認する",
+      "requireLogin": "確認するにはログインが必要です"
+    },
+    "review": {
+      "empty": "まだレビューがありません",
+      "loadMore": "もっと見る",
+      "avgRating": "平均評価",
+      "totalCount": "レビュー {count} 件",
+      "writeReview": "レビューを書く",
+      "reportIssue": "問題を報告",
+      "noRatings": "まだ評価がありません"
+    },
+    "trust": {
+      "verified": "認証済み",
+      "senior": "上級"
     }
   },
   "submit": {

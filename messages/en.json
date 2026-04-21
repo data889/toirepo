@@ -57,6 +57,34 @@
       "backToMap": "Back to map",
       "comingSoon": "Photos, reviews, and confirmations will be added in future updates.",
       "coordinates": "Coordinates: {lat}, {lng}"
+    },
+    "status": {
+      "closed": "Closed",
+      "noToilet": "No toilet at this location",
+      "hidden": "Hidden"
+    },
+    "source": {
+      "osm": "OSM",
+      "user": "User submitted"
+    },
+    "confirmation": {
+      "count": "{count} confirmed",
+      "selfConfirmed": "Confirmed",
+      "action": "Confirm",
+      "requireLogin": "Sign in to confirm"
+    },
+    "review": {
+      "empty": "No reviews yet",
+      "loadMore": "Load more",
+      "avgRating": "Average rating",
+      "totalCount": "{count} reviews",
+      "writeReview": "Write review",
+      "reportIssue": "Report issue",
+      "noRatings": "No ratings yet"
+    },
+    "trust": {
+      "verified": "Verified",
+      "senior": "Senior"
     }
   },
   "submit": {

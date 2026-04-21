@@ -10,20 +10,26 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/trpc/client'
 import { Link } from '@/i18n/navigation'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
+import { cn } from '@/lib/utils'
+import { ConfirmationCounter } from './ConfirmationCounter'
+import { PhotoGallery } from './PhotoGallery'
+import { RatingSummary } from './RatingSummary'
+import { ReviewList } from './ReviewList'
+import { ToiletStatusBadge, shouldDisplayStatusBadge } from './ToiletStatusBadge'
 
-// Locale-key narrowing: messages use zh / ja / en; routing uses zh-CN.
-function localeToKey(locale: string): 'zh' | 'ja' | 'en' {
-  if (locale === 'zh-CN') return 'zh'
-  if (locale === 'ja') return 'ja'
-  return 'en'
-}
+// M7 P2.1 sectioned layout. Order top-to-bottom:
+//   header (type badge + status warning + name + address)
+//   photo gallery (existing PhotoGallery)
+//   rating summary (avg + per-bucket bars)
+//   confirmation counter (still-exists)
+//   review list (paginated)
+//   action buttons (write review + report — placeholder until P2.2)
 
-// matchMedia subscription via React's external-store API. Avoids the
-// "synchronous setState in useEffect" footgun of the useState+useEffect
-// pattern by exposing a stable subscribe + getSnapshot pair.
 const MOBILE_QUERY = '(max-width: 767px)'
 
 function subscribeMatchMedia(callback: () => void): () => void {
@@ -38,9 +44,6 @@ function getMatchMediaSnapshot(): boolean {
 }
 
 function getMatchMediaServerSnapshot(): boolean {
-  // Default to desktop layout on the server — mismatched bedtimes are
-  // resolved on the client side without a flash because the drawer is
-  // closed by default.
   return false
 }
 
@@ -52,11 +55,11 @@ function useIsMobile(): boolean {
   )
 }
 
-const TYPE_LABEL: Record<string, { zh: string; ja: string; en: string }> = {
-  PUBLIC: { zh: '公共', ja: '公共', en: 'Public' },
-  MALL: { zh: '商场', ja: 'モール', en: 'Mall' },
-  KONBINI: { zh: '便利店', ja: 'コンビニ', en: 'Konbini' },
-  PURCHASE: { zh: '需消费', ja: '要購入', en: 'Purchase' },
+const TYPE_LABEL_KEY: Record<string, string> = {
+  PUBLIC: 'public',
+  MALL: 'mall',
+  KONBINI: 'konbini',
+  PURCHASE: 'purchase',
 }
 
 const TYPE_COLOR: Record<string, string> = {
@@ -74,22 +77,24 @@ export interface ToiletDrawerProps {
 export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
   const locale = useLocale()
   const t = useTranslations('toilet.drawer')
+  const tType = useTranslations('toilet.type')
+  const tReview = useTranslations('toilet.review')
 
-  const query = api.toilet.getBySlug.useQuery(
+  // Parallel queries — toilet metadata + reviews. Confirmation count
+  // lives inside ConfirmationCounter so it lazy-fetches per-component.
+  const toiletQuery = api.toilet.getBySlug.useQuery(
     { slug: slug ?? '' },
     { enabled: !!slug, staleTime: 60 * 1000 },
   )
-  const toilet = query.data
+  const reviewsQuery = api.review.listByToilet.useQuery(
+    { toiletId: toiletQuery.data?.id ?? '', limit: 50 },
+    { enabled: !!toiletQuery.data?.id, staleTime: 60 * 1000 },
+  )
 
-  // Viewport detection via useSyncExternalStore — bottom sheet on mobile
-  // (< md), right drawer on wider screens. SSR snapshot is `false`
-  // (matches the desktop default); on hydration the client snapshot
-  // takes over without an extra render.
   const isMobile = useIsMobile()
-
   const side = isMobile ? 'bottom' : 'right'
   const isOpen = !!slug
-  const localeKey = localeToKey(locale)
+  const toilet = toiletQuery.data
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -101,25 +106,26 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
             : 'bg-paper w-full overflow-y-auto sm:max-w-md'
         }
       >
-        {query.isLoading && (
-          <div className="text-ink-secondary py-8 text-center text-sm">{t('loading')}</div>
-        )}
+        {toiletQuery.isLoading && <DrawerSkeleton title={t('loading')} />}
 
-        {query.isError && (
+        {toiletQuery.isError && (
           <div className="text-ink-secondary py-8 text-center text-sm">{t('error')}</div>
         )}
 
         {toilet && (
-          <>
-            <SheetHeader className="space-y-2">
-              <div
-                className="inline-flex w-fit items-center gap-1 self-start rounded px-2 py-0.5 text-xs font-medium"
-                style={{
-                  backgroundColor: TYPE_COLOR[toilet.type] ?? '#8A8578',
-                  color: '#FDFCF9',
-                }}
-              >
-                {TYPE_LABEL[toilet.type]?.[localeKey] ?? toilet.type}
+          <div className={cn(shouldDisplayStatusBadge(toilet.status) && 'opacity-70')}>
+            <SheetHeader className="space-y-2 pr-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex w-fit items-center gap-1 self-start rounded px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: TYPE_COLOR[toilet.type] ?? '#8A8578',
+                    color: '#FDFCF9',
+                  }}
+                >
+                  {tType(TYPE_LABEL_KEY[toilet.type] ?? 'public')}
+                </span>
+                <ToiletStatusBadge status={toilet.status} osmId={toilet.osmId} />
               </div>
               <SheetTitle className="text-ink-primary text-left text-xl font-medium">
                 {resolveToiletName(toilet, locale)}
@@ -129,23 +135,79 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
               </SheetDescription>
             </SheetHeader>
 
-            <div className="mt-6 space-y-4 px-6">
-              <div className="text-ink-secondary text-sm">
-                <p>{t('descriptionPlaceholder')}</p>
-              </div>
+            <div className="mt-4 space-y-4 px-6 pb-6">
+              {toilet.photos && toilet.photos.length > 0 && (
+                <>
+                  <PhotoGallery photos={toilet.photos} />
+                  <Separator />
+                </>
+              )}
 
-              <div className="flex gap-2 pt-4">
-                <Link href={`/t/${toilet.slug}`} className={buttonVariants({ variant: 'default' })}>
+              <section aria-label={tReview('avgRating')}>
+                {reviewsQuery.isLoading ? (
+                  <Skeleton className="h-16 w-full" />
+                ) : (
+                  <RatingSummary
+                    ratings={(reviewsQuery.data?.reviews ?? []).map((r) => r.rating)}
+                  />
+                )}
+              </section>
+
+              <Separator />
+
+              <ConfirmationCounter toiletId={toilet.id} />
+
+              <Separator />
+
+              <section aria-label="Reviews">
+                <h3 className="text-ink-primary mb-2 text-sm font-medium">
+                  {tReview('totalCount', { count: reviewsQuery.data?.reviews.length ?? 0 })}
+                </h3>
+                <ReviewList toiletId={toilet.id} pageSize={5} />
+              </section>
+
+              <Separator />
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  // P2.2 will mount the real review-create modal here.
+                  onClick={() => alert('M7 P2.2 — review.create 实装中')}
+                >
+                  {tReview('writeReview')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  // P2.2 will open the appeal type chooser here.
+                  onClick={() => alert('M7 P2.2 — appeal.create 实装中')}
+                >
+                  {tReview('reportIssue')}
+                </Button>
+                <Link
+                  href={`/t/${toilet.slug}`}
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
                   {t('viewDetails')}
                 </Link>
-                <Button variant="outline" onClick={onClose}>
-                  {t('close')}
-                </Button>
               </div>
             </div>
-          </>
+          </div>
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+function DrawerSkeleton({ title }: { title: string }) {
+  return (
+    <div className="space-y-4 p-6" aria-label={title}>
+      <Skeleton className="h-6 w-24" />
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-16 w-full" />
+    </div>
   )
 }

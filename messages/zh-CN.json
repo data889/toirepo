@@ -57,6 +57,34 @@
       "backToMap": "返回地图",
       "comingSoon": "照片、评论、确认状态等详细信息将在后续版本中添加。",
       "coordinates": "坐标:{lat}, {lng}"
+    },
+    "status": {
+      "closed": "已关闭",
+      "noToilet": "该店实际无厕所",
+      "hidden": "隐藏中"
+    },
+    "source": {
+      "osm": "OSM",
+      "user": "用户提交"
+    },
+    "confirmation": {
+      "count": "{count} 人确认",
+      "selfConfirmed": "已确认",
+      "action": "我也确认",
+      "requireLogin": "登录后才能确认"
+    },
+    "review": {
+      "empty": "还没有评论",
+      "loadMore": "加载更多",
+      "avgRating": "平均评分",
+      "totalCount": "{count} 条评价",
+      "writeReview": "写评论",
+      "reportIssue": "报告问题",
+      "noRatings": "还没有评分"
+    },
+    "trust": {
+      "verified": "验证",
+      "senior": "资深"
     }
   },
   "submit": {
