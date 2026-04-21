@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { createTRPCRouter, protectedProcedure, withUserRateLimit } from '../../trpc'
+import { createTRPCRouter, withIpRateLimit, withUserRateLimit } from '../../trpc'
 import { bucketName, getS3 } from '@/server/r2/client'
 
 const CreateUploadUrlInputSchema = z.object({
@@ -60,19 +60,28 @@ export const photoRouter = createTRPCRouter({
    * Single batch endpoint avoids N round-trips when a page shows multiple
    * photos: one toilet × 4 photos × 2 (original + thumbnail) = up to 8 keys.
    *
-   * Currently `protectedProcedure` (login required to view photos). When
-   * MVP enters public-browse phase, swap to publicProcedure.
+   * Public procedure (M7 P2.1): anonymous visitors opening a toilet drawer
+   * need to see the photos as part of the signal for "is this place real /
+   * usable." Gating views behind login killed UX for the read-only browse
+   * flow. Defenses against scraping presigned URLs:
+   *  - IP-based rate limit (`photo:view`, 60/min/IP) — see ratelimit/limits.ts
+   *  - 1h presigned TTL caps the value of any leaked URL
+   *  - R2 bandwidth monitoring lives at the bucket level
+   * If scraping shows up, downgrade options include session-gated viewing
+   * for non-thumbnail keys or per-IP daily caps on top of the per-min cap.
    */
-  getViewUrls: protectedProcedure.input(GetViewUrlsInputSchema).query(async ({ input }) => {
-    const s3 = getS3()
-    const bucket = bucketName('photos')
-    const results: Record<string, string> = {}
-    await Promise.all(
-      input.keys.map(async (key) => {
-        const command = new GetObjectCommand({ Bucket: bucket, Key: key })
-        results[key] = await getSignedUrl(s3, command, { expiresIn: 3600 })
-      }),
-    )
-    return results
-  }),
+  getViewUrls: withIpRateLimit('photo:view')
+    .input(GetViewUrlsInputSchema)
+    .query(async ({ input }) => {
+      const s3 = getS3()
+      const bucket = bucketName('photos')
+      const results: Record<string, string> = {}
+      await Promise.all(
+        input.keys.map(async (key) => {
+          const command = new GetObjectCommand({ Bucket: bucket, Key: key })
+          results[key] = await getSignedUrl(s3, command, { expiresIn: 3600 })
+        }),
+      )
+      return results
+    }),
 })

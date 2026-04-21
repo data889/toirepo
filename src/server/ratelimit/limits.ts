@@ -17,6 +17,11 @@ const CONFIGS = {
   'review:create': { requests: 5, window: '1 h' as const },
   'confirmation:toggle': { requests: 20, window: '1 h' as const },
   'appeal:create': { requests: 3, window: '1 d' as const },
+  // photo:view buckets the public presigned-GET endpoint by IP. Anonymous
+  // visitors need to see photos to judge a toilet's signal quality, so the
+  // procedure is publicProcedure — the IP cap is the only line of defense
+  // against bots scraping presigned URLs.
+  'photo:view': { requests: 60, window: '1 m' as const },
   'auth:signin': { requests: 5, window: '15 m' as const },
   // dispute:submit reserved for future OwnerDispute wiring (business
   // owners — distinct flow from user Appeals).
