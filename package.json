@@ -32,7 +32,8 @@
     "osm:dryrun": "tsx --env-file=.env.local scripts/osm-import-dryrun.ts",
     "osm:import": "tsx --env-file=.env.local scripts/osm-import.ts",
     "osm:import:dryrun": "tsx --env-file=.env.local scripts/osm-import.ts --dry-run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "prisma generate"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
