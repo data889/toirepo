@@ -19,6 +19,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { announceTarget } from './lib/env-boot'
 import { db } from '@/server/db'
 import { translate, type ToirepoLocale } from '@/server/deepl/client'
 import { applyBrandOverrides, formatEnglishAddress, hasKana } from '@/server/deepl/brand-overrides'
@@ -224,6 +225,7 @@ async function main() {
   const sampleOnly = args.includes('--sample')
   const limit = Number(args.find((a) => a.startsWith('--limit='))?.split('=')[1] ?? 50)
 
+  await announceTarget({ graceSeconds: execute ? 5 : 0 })
   console.log(`🔍 Scanning toilets (limit=${limit})…`)
   const work = await findTargets(limit)
   console.log(`   Found ${work.length} rows with missing locale coverage.`)

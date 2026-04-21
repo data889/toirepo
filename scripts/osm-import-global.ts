@@ -23,6 +23,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { announceTarget } from './lib/env-boot'
 import { db } from '../src/server/db'
 import { queryOverpass, type OverpassResponse } from '../src/server/osm/client'
 import { mapOsmElement, type BboxGuard, type OsmToiletCandidate } from '../src/server/osm/mapping'
@@ -168,6 +169,7 @@ async function main() {
   const args = process.argv.slice(2)
   const dryRun = args.includes('--dry-run')
   const noCache = args.includes('--no-cache')
+  await announceTarget({ graceSeconds: dryRun ? 0 : 5 })
   const regionsArg = args.find((a) => a.startsWith('--regions='))?.split('=')[1]
   const targetRegions: Region[] = regionsArg
     ? REGIONS.filter((r) => regionsArg.split(',').includes(r.name))

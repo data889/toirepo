@@ -5,6 +5,7 @@
 // Usage:
 //   pnpm osm:dryrun
 
+import { announceTarget } from './lib/env-boot'
 import { db } from '../src/server/db'
 import { queryOverpass } from '../src/server/osm/client'
 import { TOKYO_TOILETS_OQL } from '../src/server/osm/queries'
@@ -22,6 +23,7 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
 }
 
 async function main() {
+  await announceTarget({ graceSeconds: 0 }) // read-only, no grace needed
   console.log('🌐 Querying Overpass API for Tokyo 23 wards...')
   console.log(`   Bbox: south=35.5, west=139.55, north=35.82, east=139.95`)
   console.log(`   OQL length: ${TOKYO_TOILETS_OQL.length} chars\n`)

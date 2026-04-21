@@ -36,6 +36,7 @@
 //   - trigger DDL uses IF EXISTS / OR REPLACE so re-running is a no-op
 //   - batching prevents a single multi-minute transaction hogging locks
 
+import { announceTarget } from './lib/env-boot'
 import { db } from '../src/server/db'
 
 const BATCH_SIZE = 10_000
@@ -162,14 +163,8 @@ async function backfillBatched(nullCount: bigint): Promise<void> {
 }
 
 async function main() {
-  console.log(`🧭 Toilet.location backfill\n`)
-
-  if (!process.env.DATABASE_URL) {
-    console.error(`✗ DATABASE_URL is required`)
-    process.exit(1)
-  }
-  const hostMatch = process.env.DATABASE_URL.match(/@([^/?]+)/)
-  console.log(`   Target: ${hostMatch?.[1] ?? '(unknown host)'}`)
+  console.log(`🧭 Toilet.location backfill`)
+  await announceTarget({ graceSeconds: 5 })
 
   // ── Phase 1: pre-diagnosis ──
   console.log(`\n🔍 Pre-backfill diagnosis`)

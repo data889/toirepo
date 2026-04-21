@@ -7,6 +7,7 @@
 //   pnpm osm:import            # actual import
 //   pnpm osm:import:dryrun     # same flow, no DB writes
 
+import { announceTarget } from './lib/env-boot'
 import { db } from '../src/server/db'
 import { queryOverpass } from '../src/server/osm/client'
 import { TOKYO_TOILETS_OQL } from '../src/server/osm/queries'
@@ -46,6 +47,7 @@ interface ExistingRow {
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run')
+  await announceTarget({ graceSeconds: dryRun ? 0 : 5 })
 
   console.log(`🌐 Fetching Overpass data${dryRun ? ' (DRY RUN)' : ''}...`)
   const response = await queryOverpass(TOKYO_TOILETS_OQL)
