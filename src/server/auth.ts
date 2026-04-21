@@ -17,7 +17,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
     Resend({
       apiKey: process.env.RESEND_API_KEY,
-      from: process.env.EMAIL_FROM,
+      // M10 P2: send from the verified toirepo.com domain. Prefer
+      // AUTH_RESEND_FROM (the authoritative signin sender) and fall
+      // back to EMAIL_FROM (the pre-M10 var, kept for back-compat)
+      // before hard-defaulting to noreply@toirepo.com. Hard default
+      // is safe because the domain is Resend-verified as of M10 P2.
+      from: process.env.AUTH_RESEND_FROM ?? process.env.EMAIL_FROM ?? 'noreply@toirepo.com',
     }),
   ],
   session: { strategy: 'database' },
