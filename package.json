@@ -37,6 +37,7 @@
     "prod:migrate": "tsx scripts/prod-migrate.ts",
     "prod:migrate-drift": "tsx scripts/prod-migrate-drift.ts",
     "prod:healthcheck": "tsx scripts/prod-healthcheck.ts",
+    "prod:backfill-location": "tsx scripts/backfill-toilet-location.ts",
     "deepl:translate": "tsx --env-file=.env.local scripts/translate-missing-names.ts",
     "sentry:test": "tsx --env-file=.env.local scripts/sentry-test.ts",
     "prepare": "husky",
