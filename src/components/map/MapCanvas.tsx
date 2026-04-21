@@ -18,10 +18,14 @@ import { api } from '@/lib/trpc/client'
 const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812]
 const DEFAULT_ZOOM = 14
 
-// M10 P2: MAX_BOUNDS removed. Basemap is now global (Protomaps public
-// pmtiles) so users can pan anywhere. Toilet data is still Tokyo-only
-// via toilet.list (10k OSM rows), which is expected MVP behavior —
-// worldwide toilet discovery is the M12 milestone.
+// M10 P2 hotfix: MAX_BOUNDS restored. The Protomaps public global URL
+// we briefly switched to returned 404 on verify; rolled back to
+// self-hosted tokyo.pmtiles which only has Kanto tiles. Without the
+// bound, pan-out goes to a blank canvas. Global coverage → M12.
+const MAX_BOUNDS: [[number, number], [number, number]] = [
+  [138.9, 35.3],
+  [140.2, 35.95],
+]
 
 export interface MapCanvasProps {
   style?: React.CSSProperties
@@ -119,6 +123,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           style,
           center: DEFAULT_CENTER,
           zoom: DEFAULT_ZOOM,
+          maxBounds: MAX_BOUNDS,
           attributionControl: false,
           dragRotate: false,
           touchPitch: false,

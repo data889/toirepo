@@ -2,13 +2,13 @@
   "version": 8,
   "name": "toirepo-paper",
   "metadata": {
-    "toirepo:note": "toirepo-paper v1 — SPEC §4.2 implementation. Authoritative colors live in SPEC §4.2 and mirror src/app/globals.css @theme. Basemap source switched M10 P2 from self-hosted R2 (tokyo.pmtiles, 237MB, Tokyo-only) to the Protomaps public sample dataset (global, ~107GB virtual, range-requested). Keeps the self-hosted tokyo.pmtiles in R2 as a zero-cost fallback; cleanup is an M12 candidate. Layers target the Protomaps basemaps v4 schema: earth, landcover, landuse, water, buildings, roads, boundaries, places."
+    "toirepo:note": "toirepo-paper v1 — SPEC §4.2 implementation. Authoritative colors live in SPEC §4.2 and mirror src/app/globals.css @theme. Basemap source rolled back to self-hosted R2 (tokyo.pmtiles, 237MB, Tokyo-only) in M10 P2 hotfix: the Protomaps public sample URL we switched to earlier returned 404 — sample snapshots rotate out of their CDN without notice. Global coverage deferred to M12 (either Planetiler self-host, Protomaps paid api.protomaps.com, or a different public pmtiles host). {{R2_PUBLIC_URL}} placeholder is substituted at runtime by src/lib/map/style-loader.ts. Layers target the Protomaps basemaps v4 schema: earth, landcover, landuse, water, buildings, roads, boundaries, places."
   },
   "glyphs": "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
   "sources": {
     "protomaps": {
       "type": "vector",
-      "url": "pmtiles://https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20240814.pmtiles",
+      "url": "pmtiles://{{R2_PUBLIC_URL}}/tokyo.pmtiles",
       "attribution": "<a href=\"https://protomaps.com\">Protomaps</a> © <a href=\"https://openstreetmap.org/copyright\">OpenStreetMap</a>"
     }
   },

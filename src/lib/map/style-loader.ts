@@ -1,21 +1,35 @@
 import type { StyleSpecification } from 'maplibre-gl'
 
+const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+
 /**
- * Load the toirepo-paper MapLibre style.
+ * Load the toirepo-paper MapLibre style, substituting runtime placeholders.
  *
- * M10 P2: basemap source switched from self-hosted R2 (tokyo.pmtiles)
- * to the Protomaps public sample dataset. The style JSON now has a
- * hardcoded pmtiles URL — no runtime env substitution. Kept as a
- * fetched JSON (vs imported) so basemap tweaks don't need a rebuild.
+ * M10 P2 history:
+ *  - First cut (Protomaps public sample URL): aborted after Ming hit a
+ *    404 on first verification — Protomaps rotates their sample
+ *    dataset snapshots without warning.
+ *  - Rolled back to self-hosted R2 (tokyo.pmtiles, Tokyo-only).
+ *    {{R2_PUBLIC_URL}} is substituted here at runtime so the same
+ *    style JSON works across dev / preview / prod without a rebuild.
  *
- * next.config.ts still references NEXT_PUBLIC_R2_PUBLIC_URL for
- * images.remotePatterns (photo rendering), so that env var stays
- * meaningful even though this loader no longer consumes it.
+ * Placeholders:
+ *   {{R2_PUBLIC_URL}}  →  process.env.NEXT_PUBLIC_R2_PUBLIC_URL
  */
 export async function loadToirepoStyle(): Promise<StyleSpecification> {
+  if (!R2_PUBLIC_URL) {
+    throw new Error(
+      'NEXT_PUBLIC_R2_PUBLIC_URL is not set. Add it to .env.local (same value as R2_PUBLIC_URL).',
+    )
+  }
+
   const res = await fetch('/map-style/toirepo-paper.json')
   if (!res.ok) {
     throw new Error(`Failed to load map style: ${res.status} ${res.statusText}`)
   }
-  return (await res.json()) as StyleSpecification
+
+  const raw = await res.text()
+  const substituted = raw.replace(/\{\{R2_PUBLIC_URL\}\}/g, R2_PUBLIC_URL)
+
+  return JSON.parse(substituted) as StyleSpecification
 }
