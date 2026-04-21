@@ -2,13 +2,13 @@
   "version": 8,
   "name": "toirepo-paper",
   "metadata": {
-    "toirepo:note": "toirepo-paper v1 — SPEC §4.2 implementation. Authoritative colors live in SPEC §4.2 and mirror src/app/globals.css @theme. pmtiles URL is a placeholder — replace {{R2_PUBLIC_URL}} at build/deploy time with the actual R2 public URL (handled by src/components/map/MapCanvas.tsx in T3.4). Layers target the Protomaps basemaps v4 schema: earth, landcover, landuse, water, buildings, roads, boundaries, places."
+    "toirepo:note": "toirepo-paper v1 — SPEC §4.2 implementation. Authoritative colors live in SPEC §4.2 and mirror src/app/globals.css @theme. Basemap source switched M10 P2 from self-hosted R2 (tokyo.pmtiles, 237MB, Tokyo-only) to the Protomaps public sample dataset (global, ~107GB virtual, range-requested). Keeps the self-hosted tokyo.pmtiles in R2 as a zero-cost fallback; cleanup is an M12 candidate. Layers target the Protomaps basemaps v4 schema: earth, landcover, landuse, water, buildings, roads, boundaries, places."
   },
   "glyphs": "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
   "sources": {
     "protomaps": {
       "type": "vector",
-      "url": "pmtiles://{{R2_PUBLIC_URL}}/tokyo.pmtiles",
+      "url": "pmtiles://https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20240814.pmtiles",
       "attribution": "<a href=\"https://protomaps.com\">Protomaps</a> © <a href=\"https://openstreetmap.org/copyright\">OpenStreetMap</a>"
     }
   },
