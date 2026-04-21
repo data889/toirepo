@@ -39,7 +39,14 @@ export const ListByBboxInputSchema = z.object({
   // queries below zoom 3 to avoid whole-earth envelopes that can't
   // fit inside the limit. Keeping it in the input makes
   // server-side logging/metrics aware of view context if needed.
-  zoom: z.number().int().min(0).max(22),
+  //
+  // NOT .int(): MapLibre's map.getZoom() returns a fractional float
+  // during any transition (e.g. 7.086607388906396 mid-pinch). An
+  // .int() guard rejected every single client query with BAD_REQUEST
+  // — React Query saw isSuccess=false, data undefined, no markers
+  // rendered anywhere, and in prod builds the tRPC loggerLink is
+  // disabled so the error was entirely silent.
+  zoom: z.number().min(0).max(22),
   // 5000 is the ceiling the original M11 schema tolerated when
   // MapLibre's cluster aggregation was benchmarked against Tokyo's
   // 10k rows. A typical mid-zoom city viewport returns well under
