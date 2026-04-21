@@ -54,6 +54,8 @@ model User {
   confirmations Confirmation[]
   appeals       Appeal[]       @relation("AppealAuthor")
   resolvedAppeals Appeal[]     @relation("AppealResolver")
+  // M7 P1.5: back-ref for Toilet.lastCommunityEditByUser.
+  communityEditedToilets Toilet[] @relation("ToiletCommunityEditor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -160,6 +162,16 @@ model Toilet {
   photoCount      Int       @default(0)
   lastConfirmedAt DateTime?
 
+  // M7 P1.5: community edit trail. When an Appeal of type SUGGEST_EDIT
+  // is UPHELD, the Toilet row is mutated and these columns record what
+  // happened. originalOsmTags snapshots the pre-edit OSM tags ONLY on
+  // the first community edit of an OSM-sourced row, so we can audit or
+  // roll back divergence from upstream.
+  lastCommunityEditAt     DateTime?
+  lastCommunityEditBy     String?
+  lastCommunityEditByUser User?     @relation("ToiletCommunityEditor", fields: [lastCommunityEditBy], references: [id])
+  originalOsmTags         Json?
+
   photos        Photo[]
   reviews       Review[]
   confirmations Confirmation[]
@@ -182,6 +194,12 @@ enum ToiletStatus {
   REJECTED
   HIDDEN
   ARCHIVED
+  // M7 P1.5: community-reported states. Unlike REJECTED (hard hide),
+  // these two stay visible on the map with a dimmed / warning treatment
+  // (UI in M7 P2). Distinguish "shop is gone entirely" from "shop
+  // exists but has no toilet / refuses non-customers".
+  CLOSED
+  NO_TOILET_HERE
 }
 
 enum ToiletSource {
@@ -386,10 +404,10 @@ enum DisputeStatus {
 }
 
 // ============================================================
-// 用户申诉 (M7 P1) — 与 OwnerDispute 区分：
-//   OwnerDispute: 业主来申诉"我不想我的店被列"
-//   Appeal:       用户自己的提交被 reject → 要求复核 (OWN_SUBMISSION_REJECT)
-//                 用户看到他人 approved 的数据是错 → 举报 (BAD_APPROVED_DATA)
+// 用户 Appeal (M7 P1 + P1.5) — 与 OwnerDispute 区分：
+//   OwnerDispute: 店主来申诉"我不想我的店被列"
+//   Appeal:       所有用户对已有数据的 变更/举报/撤回 请求，通过 AppealType
+//                 6 种类型覆盖，走 admin 审核 + Haiku AI 预审参考。
 // 二者路由 / 权限 / UI 都不同，刻意独立存在。
 // ============================================================
 
@@ -398,17 +416,30 @@ model Appeal {
   userId String
   user   User   @relation("AppealAuthor", fields: [userId], references: [id], onDelete: Cascade)
 
-  type AppealType
-  // Exactly one of these is non-null — enforced via CHECK constraint in
-  // migration raw SQL (Prisma doesn't model multi-column CHECKs natively).
+  type           AppealType
   targetToiletId String?
-  targetToilet   Toilet? @relation("AppealTarget", fields: [targetToiletId], references: [id], onDelete: Cascade)
-  // OWN_SUBMISSION_REJECT's target is also a Toilet row (submissions that
-  // became REJECTED). We intentionally don't branch to a separate
-  // Submission entity — REJECTED Toilets still exist in the table.
+  targetToilet   Toilet?    @relation("AppealTarget", fields: [targetToiletId], references: [id], onDelete: Cascade)
+  // All 6 AppealTypes target a Toilet row (REJECTED submissions are still
+  // in the Toilet table). A separate targetSubmissionId column is
+  // deliberately NOT added — semantics ride on `type` + targetToiletId.
+  // A CHECK constraint in the migration enforces targetToiletId NOT NULL.
 
   reason   String   @db.Text
   evidence String[] // R2 photo keys (optional)
+
+  // SUGGEST_EDIT only: partial Toilet update payload (name / address /
+  // type / floor / hours). Validated at the application layer against a
+  // zod allowlist; DB CHECK enforces non-null when type is SUGGEST_EDIT.
+  // NULL for all other AppealTypes.
+  proposedChanges Json?
+
+  // Haiku pre-screen (P1.5). Writes by moderateAppeal for admin reference.
+  // Does NOT auto-resolve — admin still decides every case.
+  aiDecision    ModerationDecision?
+  aiConfidence  Float?
+  aiReasons     Json?
+  aiRawText     String?             @db.Text
+  aiModeratedAt DateTime?
 
   status         AppealStatus @default(PENDING)
   resolutionNote String?      @db.Text
@@ -422,11 +453,16 @@ model Appeal {
   @@index([status, createdAt])
   @@index([userId])
   @@index([targetToiletId])
+  @@index([type, status])
 }
 
 enum AppealType {
   OWN_SUBMISSION_REJECT // my submission got rejected — please reconsider
-  BAD_APPROVED_DATA     // someone else's approved entry is wrong — please remove
+  REPORT_DATA_ERROR     // someone else's approved entry is factually wrong
+  SUGGEST_EDIT          // propose a field-level edit (uses proposedChanges)
+  REPORT_CLOSED         // the business is physically closed
+  REPORT_NO_TOILET      // the business exists but has no toilet / non-customer refused
+  SELF_SOFT_DELETE      // author wants their own submission hidden (via review)
 }
 
 enum AppealStatus {
