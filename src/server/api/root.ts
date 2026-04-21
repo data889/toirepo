@@ -7,6 +7,7 @@ import { pingRouter } from './routers/ping'
 import { reviewRouter } from './routers/review'
 import { submissionRouter } from './routers/submission'
 import { toiletRouter } from './routers/toilet'
+import { translationRouter } from './routers/translation'
 
 export const appRouter = createTRPCRouter({
   ping: pingRouter,
@@ -17,6 +18,7 @@ export const appRouter = createTRPCRouter({
   review: reviewRouter,
   confirmation: confirmationRouter,
   appeal: appealRouter,
+  translation: translationRouter,
 })
 
 export type AppRouter = typeof appRouter
