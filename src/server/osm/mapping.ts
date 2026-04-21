@@ -104,10 +104,33 @@ export function buildAddress(tags: Record<string, string>): OsmToiletCandidate['
 }
 
 /**
- * Map an OSM element to a toilet candidate.
- * Returns null if element is not a valid toilet candidate.
+ * Bounding-box guard tuple: [south, west, north, east] — same order
+ * Overpass uses. mapOsmElement drops any element outside the box.
  */
-export function mapOsmElement(el: OsmElement): OsmToiletCandidate | null {
+export type BboxGuard = [number, number, number, number]
+
+/**
+ * Tokyo-23-wards guard, slightly generous to catch Adachi in the
+ * north and Ota in the south. The default osm-import (Tokyo-only)
+ * still needs this because Overpass bbox rounding occasionally ships
+ * back elements a few hundred metres outside the requested frame.
+ */
+export const TOKYO_BBOX_GUARD: BboxGuard = [35.4, 139.5, 35.9, 140.0]
+
+/**
+ * Map an OSM element to a toilet candidate. Returns null if element
+ * is invalid (missing tags, no position, wrong amenity, outside guard).
+ *
+ * @param bboxGuard  Optional [s,w,n,e]. When passed, rejects elements
+ *                   with lat/lon outside. Defaults to TOKYO_BBOX_GUARD
+ *                   for back-compat with the Tokyo-only importer;
+ *                   osm-import-global passes each region's bbox so
+ *                   worldwide coordinates aren't mass-rejected.
+ */
+export function mapOsmElement(
+  el: OsmElement,
+  bboxGuard: BboxGuard | null = TOKYO_BBOX_GUARD,
+): OsmToiletCandidate | null {
   const tags = el.tags ?? {}
 
   const type = inferToiletType(tags)
@@ -119,9 +142,10 @@ export function mapOsmElement(el: OsmElement): OsmToiletCandidate | null {
   const lon = el.lon ?? el.center?.lon
   if (lat == null || lon == null) return null
 
-  // Tokyo bbox guard — drops anything that slipped in via overly generous
-  // Overpass bbox rounding.
-  if (lat < 35.4 || lat > 35.9 || lon < 139.5 || lon > 140.0) return null
+  if (bboxGuard) {
+    const [s, w, n, e] = bboxGuard
+    if (lat < s || lat > n || lon < w || lon > e) return null
+  }
 
   const name = buildName(tags, type)
   const address = buildAddress(tags)
