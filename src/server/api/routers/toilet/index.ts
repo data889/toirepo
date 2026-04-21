@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma'
 import { createTRPCRouter, publicProcedure } from '../../trpc'
+import { listByBbox } from './listByBbox'
 import { GetBySlugInputSchema, ListInputSchema } from './schemas'
 
 // Shape of name/address as stored in Toilet's Json columns. Always
@@ -31,6 +32,11 @@ interface BboxRow {
 const PUBLIC_VISIBLE_STATUSES = ['APPROVED', 'CLOSED', 'NO_TOILET_HERE'] as const
 
 export const toiletRouter = createTRPCRouter({
+  // M12: viewport-bbox lazy fetch — replaces the old "pull all 2000"
+  // client call so prod's 365k+ Toilets are reachable as users pan
+  // beyond Tokyo. See ./listByBbox.ts.
+  listByBbox,
+
   list: publicProcedure.input(ListInputSchema).query(async ({ ctx, input }) => {
     const { bbox, limit } = input
 
