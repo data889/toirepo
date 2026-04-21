@@ -166,6 +166,12 @@ export const submissionRouter = createTRPCRouter({
           address: true,
           type: true,
           status: true,
+          // M7 P2.3: floor + submittedById are needed by the AppealDialog
+          // when /me/submissions wires its REJECTED-row "Appeal" button —
+          // the dialog reads them from the toilet prop to decide whether
+          // SUGGEST_EDIT / OWN_SUBMISSION_REJECT should appear.
+          floor: true,
+          submittedById: true,
           latitude: true,
           longitude: true,
           createdAt: true,

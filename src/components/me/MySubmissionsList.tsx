@@ -1,13 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/trpc/client'
 import { useBatchPhotoUrls } from '@/hooks/useBatchPhotoUrls'
+import { useSession } from '@/hooks/useSession'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
+import { AppealDialog } from '@/components/toilet/AppealDialog'
 
 // Colors pinned to SPEC §4.2. STATUS covers the 5 real enum values in
 // prisma/schema.prisma (PENDING/APPROVED/REJECTED/HIDDEN/ARCHIVED).
@@ -32,12 +35,32 @@ interface MySubmissionsListProps {
   justSubmittedSlug: string | null
 }
 
+type AppealableSubmission = {
+  id: string
+  status: string
+  submittedById: string | null
+  name: unknown
+  address: unknown
+  type: 'PUBLIC' | 'MALL' | 'KONBINI' | 'PURCHASE'
+  floor: string | null
+}
+
 export function MySubmissionsList({ justSubmittedSlug }: MySubmissionsListProps) {
   const t = useTranslations('submissions')
   const tType = useTranslations('toilet.type')
   const locale = useLocale()
+  const session = useSession()
 
   const listQuery = api.submission.listMine.useQuery({ limit: 50 }, { staleTime: 30 * 1000 })
+
+  // M7 P2.3: REJECTED row "Appeal" button opens AppealDialog with
+  // initialType=OWN_SUBMISSION_REJECT. Using state instead of per-row
+  // mounting keeps a single dialog instance + makes the conditional
+  // mount pattern (introduced in P2.2 to avoid set-state-in-effect)
+  // straightforward.
+  const [appealingSubmission, setAppealingSubmission] = useState<AppealableSubmission | null>(null)
+  const trustLevel = session.user?.trustLevel ?? 0
+  const canAppeal = trustLevel >= 1
 
   // Flatten every submission's photo thumbnail keys for one batched
   // presigned-URL call. Dedup happens inside useBatchPhotoUrls.
@@ -115,6 +138,31 @@ export function MySubmissionsList({ justSubmittedSlug }: MySubmissionsListProps)
                   <RejectionReasons reasons={sub.moderation.reasons} />
                 )}
 
+                {sub.status === 'REJECTED' && (
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!canAppeal}
+                      title={!canAppeal ? t('appealRequireTrust') : undefined}
+                      onClick={() =>
+                        setAppealingSubmission({
+                          id: sub.id,
+                          status: sub.status,
+                          submittedById: sub.submittedById,
+                          name: sub.name,
+                          address: sub.address,
+                          type: sub.type,
+                          floor: sub.floor ?? null,
+                        })
+                      }
+                    >
+                      {t('appealButton')}
+                    </Button>
+                  </div>
+                )}
+
                 {sub.photos.length > 0 && (
                   <div className="mt-4 grid grid-cols-4 gap-2">
                     {sub.photos.slice(0, 4).map((photo) => {
@@ -145,6 +193,15 @@ export function MySubmissionsList({ justSubmittedSlug }: MySubmissionsListProps)
             )
           })}
         </ul>
+      )}
+
+      {appealingSubmission && (
+        <AppealDialog
+          open={!!appealingSubmission}
+          onClose={() => setAppealingSubmission(null)}
+          toilet={appealingSubmission}
+          initialType="OWN_SUBMISSION_REJECT"
+        />
       )}
     </div>
   )

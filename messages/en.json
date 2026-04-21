@@ -296,7 +296,9 @@
     },
     "submittedAt": "Submitted {date}",
     "photoCount": "{count} photos",
-    "coordinates": "Coords: {lat}, {lng}"
+    "coordinates": "Coords: {lat}, {lng}",
+    "appealButton": "Appeal this rejection",
+    "appealRequireTrust": "Submit one approved toilet to unlock appeals"
   },
   "admin": {
     "headerLink": "Admin",

@@ -109,6 +109,15 @@ export interface AppealDialogProps {
     type: 'PUBLIC' | 'MALL' | 'KONBINI' | 'PURCHASE'
     floor: string | null
   }
+  /**
+   * When set, skip Step 1's type picker and jump straight into Step 2
+   * with this AppealType pre-selected. Used by /me/submissions to file
+   * an OWN_SUBMISSION_REJECT against a REJECTED row that the toilet
+   * drawer can't otherwise reach (toilet.getBySlug filters out REJECTED).
+   * Caller MUST pass a toilet whose status / ownership satisfies the
+   * type's gate, or the server will return BAD_REQUEST / FORBIDDEN.
+   */
+  initialType?: AppealType
 }
 
 interface PhotoSlot {
@@ -117,21 +126,32 @@ interface PhotoSlot {
   previewUrl: string
 }
 
-export function AppealDialog({ open, onClose, toilet }: AppealDialogProps) {
+export function AppealDialog({ open, onClose, toilet, initialType }: AppealDialogProps) {
   const t = useTranslations('toilet.appeal')
   const locale = useLocale()
   const session = useSession()
   const router = useRouter()
   const pathname = usePathname()
 
-  const [step, setStep] = useState<1 | 2>(1)
-  const [chosen, setChosen] = useState<AppealType | null>(null)
+  const [step, setStep] = useState<1 | 2>(initialType ? 2 : 1)
+  const [chosen, setChosen] = useState<AppealType | null>(initialType ?? null)
   const [reason, setReason] = useState('')
   const [photos, setPhotos] = useState<PhotoSlot[]>([])
-  const [editName, setEditName] = useState('')
-  const [editAddress, setEditAddress] = useState('')
-  const [editType, setEditType] = useState<'PUBLIC' | 'MALL' | 'KONBINI' | 'PURCHASE' | ''>('')
-  const [editFloor, setEditFloor] = useState('')
+  // SUGGEST_EDIT pre-fill on mount when initialType skipped Step 1.
+  // The advanceToStep2() helper does the same thing for the normal
+  // path; conditional initial state mirrors it on the preset path.
+  const [editName, setEditName] = useState(() =>
+    initialType === 'SUGGEST_EDIT' ? resolveToiletName(toilet, locale) : '',
+  )
+  const [editAddress, setEditAddress] = useState(() =>
+    initialType === 'SUGGEST_EDIT' ? resolveToiletAddress(toilet, locale) : '',
+  )
+  const [editType, setEditType] = useState<'PUBLIC' | 'MALL' | 'KONBINI' | 'PURCHASE' | ''>(
+    initialType === 'SUGGEST_EDIT' ? toilet.type : '',
+  )
+  const [editFloor, setEditFloor] = useState(() =>
+    initialType === 'SUGGEST_EDIT' ? (toilet.floor ?? '') : '',
+  )
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)

@@ -296,7 +296,9 @@
     },
     "submittedAt": "提交于 {date}",
     "photoCount": "{count} 张照片",
-    "coordinates": "坐标：{lat}, {lng}"
+    "coordinates": "坐标：{lat}, {lng}",
+    "appealButton": "申诉这次拒绝",
+    "appealRequireTrust": "提交 1 条通过审核的厕所后可申诉"
   },
   "admin": {
     "headerLink": "管理",

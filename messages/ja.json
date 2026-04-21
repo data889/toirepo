@@ -296,7 +296,9 @@
     },
     "submittedAt": "投稿日 {date}",
     "photoCount": "写真 {count} 枚",
-    "coordinates": "座標：{lat}, {lng}"
+    "coordinates": "座標：{lat}, {lng}",
+    "appealButton": "却下を再審査依頼",
+    "appealRequireTrust": "承認済みの投稿が 1 件あれば申し立て可能"
   },
   "admin": {
     "headerLink": "管理",
