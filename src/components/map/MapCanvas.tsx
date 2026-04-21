@@ -56,15 +56,47 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     [searchParams, router, pathname],
   )
 
-  const toiletsQuery = api.toilet.list.useQuery(
-    { limit: 2000 },
+  // M12: viewport state drives the bbox-scoped tRPC query below. null
+  // until the map emits its first post-load moveend; after that, each
+  // pan/zoom/idle tick schedules an update (debounced — see scheduleViewportSync).
+  const [viewport, setViewport] = useState<{
+    bbox: [number, number, number, number]
+    zoom: number
+  } | null>(null)
+
+  // Below this zoom the viewport spans most of the planet — a single
+  // query would either hit the 5000-row limit instantly or miss whole
+  // regions. Surface an onboarding hint instead (next commit) and
+  // skip the fetch.
+  const MIN_FETCH_ZOOM = 3
+  const shouldFetch = !!viewport && viewport.zoom >= MIN_FETCH_ZOOM
+
+  const toiletsQuery = api.toilet.listByBbox.useQuery(
+    shouldFetch
+      ? {
+          minLng: viewport.bbox[0],
+          minLat: viewport.bbox[1],
+          maxLng: viewport.bbox[2],
+          maxLat: viewport.bbox[3],
+          zoom: viewport.zoom,
+          limit: 2000,
+        }
+      : // When disabled, input is ignored by tRPC. The placeholder
+        // satisfies the type without being sent.
+        {
+          minLng: 0,
+          minLat: 0,
+          maxLng: 0,
+          maxLat: 0,
+          zoom: 0,
+          limit: 2000,
+        },
     {
-      // Short staleTime as a fallback: the primary freshness signal is
-      // explicit cache invalidation from /admin/queue (AdminQueueList
-      // calls toilet.list.invalidate() on approve/reject). If that
-      // signal is missed (cross-tab, hard reload), 30s keeps the map
-      // from feeling stale for long.
-      staleTime: 30 * 1000,
+      enabled: shouldFetch,
+      // 5 min across the same viewport — React Query dedupes exact
+      // bbox matches (user panning back and forth). Admin approvals
+      // invalidate the full key so freshness still works that path.
+      staleTime: 5 * 60 * 1000,
       refetchOnMount: 'always',
       refetchOnWindowFocus: false,
     },
@@ -79,6 +111,9 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
   // recreates the function (it does, on every searchParams change), we
   // want the latest version inside the closure.
   const setOpenedSlugRef = useRef(setOpenedSlug)
+  // Debounce handle for viewport sync (moveend fires many times during
+  // a single pan; we only care about the settled state).
+  const viewportDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [error, setError] = useState<string | null>(null)
 
@@ -169,6 +204,23 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           }),
           'bottom-right',
         )
+
+        // M12: settle-based viewport sync. moveend fires on every pan
+        // tick during a drag; 500ms debounce collapses those into one
+        // setViewport when the user lets go. An initial call is made
+        // after map.load so the first render has data without waiting
+        // for user interaction.
+        const syncViewport = () => {
+          const b = map.getBounds()
+          setViewport({
+            bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
+            zoom: map.getZoom(),
+          })
+        }
+        const scheduleViewportSync = () => {
+          if (viewportDebounceRef.current) clearTimeout(viewportDebounceRef.current)
+          viewportDebounceRef.current = setTimeout(syncViewport, 500)
+        }
 
         map.on('load', async () => {
           if (cancelled) return
@@ -262,6 +314,12 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
                 source.setData(toiletsToGeoJSON(toilets, localeRef.current))
               }
             }
+
+            // Kick off the first viewport fetch now that layers + click
+            // handlers are ready. Subsequent settled views piggyback on
+            // moveend.
+            syncViewport()
+            map.on('moveend', scheduleViewportSync)
           } catch (e) {
             console.error('Failed to initialize toilet layers:', e)
           }
@@ -280,6 +338,10 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     return () => {
       cancelled = true
       sourceAddedRef.current = false
+      if (viewportDebounceRef.current) {
+        clearTimeout(viewportDebounceRef.current)
+        viewportDebounceRef.current = null
+      }
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null

@@ -38,10 +38,12 @@ export function AdminQueueList() {
   const reviewMutation = api.admin.review.useMutation({
     onSuccess: () => {
       // Invalidate both the queue (so the approved/rejected card drops out)
-      // AND the public map's toilet.list (so APPROVED rows show up on the
-      // main map without waiting for the 30s staleTime or a manual reload).
+      // AND the public map's toilet.listByBbox (M12: the map now fetches
+      // per-viewport, so invalidating this key forces any open client to
+      // re-query for its current bbox — immediate refresh when the newly
+      // approved toilet falls inside, no-op otherwise).
       void utils.admin.listQueue.invalidate()
-      void utils.toilet.list.invalidate()
+      void utils.toilet.listByBbox.invalidate()
     },
   })
 

@@ -75,7 +75,11 @@ export function AdminAppealsList() {
   const resolveMutation = api.admin.resolveAppeal.useMutation({
     onSuccess: () => {
       void utils.admin.listAppeals.invalidate()
-      void utils.toilet.list.invalidate()
+      // M12: the public map moved off toilet.list to toilet.listByBbox
+      // for viewport-scoped fetches; invalidate the bbox key so any
+      // open map re-queries its current viewport after an appeal
+      // resolution mutates the visible Toilet.
+      void utils.toilet.listByBbox.invalidate()
       void utils.toilet.getBySlug.invalidate()
     },
     onError: (err) => {
