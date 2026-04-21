@@ -88,11 +88,31 @@ R2 CORS 改动**即时生效**，不需要等 bucket 重建或重启 dev。
 **注意**：R2 CORS 不支持 IP 段通配符（`192.168.*` 或 `http://192.168.*:3000`
 都会被拒）。每个新 IP 都要精确加一条。
 
-### Step 3（可选）· `toirepo-photos` bucket CORS 同步
+### Step 3 · `toirepo-photos` bucket CORS 同步（M7 P1.5 起必需）
 
-如果测试包括提交新厕所 + 上传图片（M5 功能），`toirepo-photos` bucket 也
-要同步 Step 2 的白名单 —— 否则 presigned PUT 会被浏览器 CORS 拦。M5 P1
-设置过的话目前应该已经包含 `http://localhost:3000`；LAN IP 需要手动加。
+两个 bucket 的 CORS 白名单独立维护。Step 2 改的是 `toirepo-tiles`（底图
+pmtiles）。`toirepo-photos`（用户上传 + 评论 + 申诉证据照片）从 M5 P1
+开始就需要自己的白名单；M7 P1.5 起评论 + 申诉都会上传照片，照片相关
+功能在 LAN IP 访问时必走这一条。
+
+`toirepo-photos` 当前 CORS（与 tiles 相比多一个 `PUT`）:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000", "http://192.168.151.5:3000"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["content-type", "content-length", "x-amz-*"],
+    "ExposeHeaders": ["etag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+**每次 LAN IP 漂移时两个 bucket 都要改**。遗漏 `toirepo-photos` 会导致：
+- M5 提交新厕所时照片上传 CORS 403
+- M7 P2 评论附图上传 CORS 403
+- M7 申诉附证据照片上传 CORS 403
 
 ---
 

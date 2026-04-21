@@ -108,27 +108,46 @@ of the row IS the "yes, still exists" signal. No cooldown (M6 legacy
 
 ### `appeal` router
 
-| Procedure          | Auth              | Rate limit          | Purpose                                      |
-| ------------------ | ----------------- | ------------------- | -------------------------------------------- |
-| `create`           | `protected` + L2+ | `appeal:create` 3/d | File an Appeal (two types)                   |
-| `listMine`         | `protected`       | —                   | My appeals, all statuses                     |
-| `listPending`      | `admin`           | —                   | Paginated PENDING queue for moderators       |
-| `resolve`          | `admin`           | —                   | UPHELD or DISMISSED; UPHELD flips Toilet     |
+**M7 P1.5 (2026-04-21): 6 appeal types + discriminated union input + Haiku pre-screen + admin procedures moved to `admin.*`.**
 
-`create` types:
+| Procedure              | Auth                    | Rate limit          | Purpose                                       |
+| ---------------------- | ----------------------- | ------------------- | --------------------------------------------- |
+| `appeal.create`        | `protected` + per-type  | `appeal:create` 3/d | File an Appeal (6 types, discriminated union) |
+| `appeal.listMine`      | `protected`             | —                   | My appeals, all statuses                      |
+| `admin.listAppeals`    | `admin`                 | —                   | Paginated PENDING queue, filter by type       |
+| `admin.resolveAppeal`  | `admin`                 | —                   | UPHELD / DISMISSED with 6-type side effects   |
 
-- `OWN_SUBMISSION_REJECT`: `targetToiletId` must be a Toilet submitted
-  by the caller with `status = REJECTED`.
-- `BAD_APPROVED_DATA`: `targetToiletId` must be a Toilet with
-  `status = APPROVED` (any submitter).
+### AppealType + trust gates
 
-`resolve` side effects:
+| Type                     | Target status must be | Min trust | Extra validation                              |
+| ------------------------ | --------------------- | --------- | --------------------------------------------- |
+| `OWN_SUBMISSION_REJECT`  | `REJECTED`            | L1        | `submittedById === caller.id`                 |
+| `SELF_SOFT_DELETE`       | any non-hidden        | L1        | `submittedById === caller.id`                 |
+| `REPORT_CLOSED`          | `APPROVED`            | L1        | —                                             |
+| `REPORT_NO_TOILET`       | `APPROVED`            | L1        | —                                             |
+| `REPORT_DATA_ERROR`      | `APPROVED`            | L2        | —                                             |
+| `SUGGEST_EDIT`           | `APPROVED`            | L2        | `proposedChanges` non-empty and differs from current |
 
-- `UPHELD + OWN_SUBMISSION_REJECT` → `Toilet.status` flips `REJECTED → APPROVED` (+ `publishedAt = now`).
-- `UPHELD + BAD_APPROVED_DATA` → `Toilet.status` flips `APPROVED → REJECTED`.
-- `DISMISSED` → target untouched; only `Appeal.status` changes.
+### `admin.resolveAppeal` UPHELD side effects
 
-Duplicate guard: one `PENDING` appeal per `(userId, targetToiletId)` pair.
+| AppealType              | Toilet mutation                                                     |
+| ----------------------- | ------------------------------------------------------------------- |
+| `OWN_SUBMISSION_REJECT` | `status: REJECTED → APPROVED` + `publishedAt = now`                  |
+| `REPORT_DATA_ERROR`     | `status: APPROVED → REJECTED`                                        |
+| `SUGGEST_EDIT`          | apply allowlisted fields from `proposedChanges` + `lastCommunityEditAt/By` + snapshot `originalOsmTags` on first OSM edit |
+| `REPORT_CLOSED`         | `status: APPROVED → CLOSED` (stays visible, dimmed UI)              |
+| `REPORT_NO_TOILET`      | `status: APPROVED → NO_TOILET_HERE` (stays visible, dimmed UI)      |
+| `SELF_SOFT_DELETE`      | `status: → REJECTED` (hard hide; row kept)                          |
+
+`DISMISSED`: no target mutation. Only `Appeal.{status, resolutionNote, resolvedById, resolvedAt}` updates. All mutations run inside a Prisma `$transaction`.
+
+**Haiku pre-screen**: `moderateAppeal(appealId)` writes `aiDecision / aiConfidence / aiReasons / aiRawText / aiModeratedAt` inline on the Appeal row. Advisory only — never auto-resolves. Admin sees the verdict in `admin.listAppeals` queue and decides.
+
+Duplicate guard: one `PENDING` appeal per `(userId, targetToiletId)` pair, regardless of type (second attempt returns `CONFLICT`).
+
+CHECK constraints at DB layer:
+- `Appeal_target_required` — `targetToiletId IS NOT NULL` for every row.
+- `Appeal_suggest_edit_payload` — `proposedChanges IS NOT NULL` iff `type = SUGGEST_EDIT`.
 
 ---
 

@@ -5,6 +5,68 @@
 
 ---
 
+## M7 P1.5 追踪 (2026-04-21)
+
+### AppealType enum swap 手工操作
+
+**背景**：P1.5 把 `BAD_APPROVED_DATA` 重命名为 `REPORT_DATA_ERROR` 并加
+了 4 个新值。PostgreSQL 不支持 DROP enum value，只能 CREATE 新 type →
+column USING CASE 迁移 → DROP 旧 type → RENAME。migration.sql 顶部注释
+记录了完整步骤。
+**风险**：如果未来有人跑 `pnpm prisma migrate dev`，Prisma 会按新的
+enum 重生 migration SQL，里面可能包含 `DROP TYPE "AppealType"` 直接操作，
+在已应用此 P1.5 migration 的 DB 上会失败。解决：每次 Prisma 7 下的新
+migration 都先 `migrate diff` → 人工 review → 不用 `migrate dev`。
+
+### Prisma 7 drift 第 4 次规避
+
+**背景**：本轮选择了**完全不跑** `prisma migrate dev`，因为 DB 里已有
+10,129 Toilet 行 + M7 P1 的 AppealType enum，`migrate dev` 会要求重置。
+**操作路径**：手写 migration SQL → `docker exec psql < migration.sql` →
+`prisma migrate resolve --applied` → `prisma generate`。
+**验证**：`Toilet.location` NOT NULL + `toilet_location_idx` spatial 完好，
+10,129 Toilet 行完整。这是第 4 次规避 drift。
+
+### `proposedChanges` 字段没有 DB 级白名单
+
+**背景**：Appeal.proposedChanges 是 JSONB。zod 层的 ProposedChangesSchema
+允许 name / address / type / floor / hours；但 DB 只检查 `IS NOT NULL`。
+**风险**：若未来绕过 tRPC 直接写 DB，可以写入任意字段。`admin.resolveAppeal`
+的 SUGGEST_EDIT 分支只按白名单字段 patch Toilet，非白名单字段静默忽略 —
+所以风险收敛但不为零。
+**修复方向**：加 PostgreSQL `jsonb_path_match` CHECK 或 JSON schema
+extension，MVP 阶段不做。
+
+### SUGGEST_EDIT `hours` 字段是"软落地"
+
+**背景**：ProposedChangesSchema 接受 `hours`，但 Toilet 模型目前**没有**
+`hours` 列。`admin.resolveAppeal` UPHELD 时 hours 部分被忽略（代码里
+`// hours field not yet on Toilet schema` 注释）。
+**现状**：用户可以提交 hours 改动建议，admin 看到 proposedChanges 里
+有这项，但 UPHELD 不会落到任何列。
+**修复时机**：M8 DeepL 翻译 / 未来营业时间特性时给 Toilet 加 hours Json
+列（多语言 + 结构化），再回来给 resolveAppeal 打通。
+
+### `admin.listAppeals` 无 photo 缩略图签名
+
+**背景**：列表返回 evidence String[]（R2 keys），但不附带 `photo.getViewUrls`
+签名结果。admin UI (M7 P3) 需要自己批量调 getViewUrls 拿 presigned GET。
+**现状**：行为正确，只是多一次往返。M7 P3 的 UI 层加 useBatchPhotoUrls
+hook 就解决（与 /me/submissions 一样的 pattern）。
+
+### Appeal moderation 与 Toilet / Review moderation 分离
+
+**背景**：M6 有 ToiletModeration 表持久化 toilet 审核；M7 P1 把 review
+moderation 字段 inline 到 Review；M7 P1.5 把 appeal moderation 字段
+inline 到 Appeal。三种风格三处存放。
+**评价**：接受。每种审核对象查询模式不同：Toilet 需要 1:1 唯一约束 +
+独立 ToiletModeration 表做 admin 队列 join；Review / Appeal 本身就是
+队列对象，inline 更直观。
+**未来**：若要统一 moderation 审计 UI（跨 toilet + review + appeal），
+考虑抽一个 `ModerationEvent` 表做只读视图。不紧急。
+
+---
+
 ## M7 P1 追踪 (2026-04-21)
 
 ### Prisma 7 drift 第三次触发（已手动修）

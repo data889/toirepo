@@ -7,7 +7,9 @@ import {
   canAutoPublish,
   canConfirmToilet,
   canReviewToilet,
+  canSoftDeleteOwnToilet,
   canSubmitToilet,
+  canSuggestEdit,
   canUploadPhoto,
   isBanned,
 } from './permissions'
@@ -164,35 +166,122 @@ describe('canReviewToilet (M7 P1 trust gating + upsert)', () => {
   })
 })
 
-describe('canAppeal (M7 P1 · L2+ gate)', () => {
+describe('canAppeal (M7 P1.5 · per-type trust gates)', () => {
   const l0User: AuthUser = { ...baseUser, trustLevel: 0 }
   const l1User: AuthUser = { ...baseUser, trustLevel: 1 }
   const l2User: AuthUser = { ...baseUser, trustLevel: 2 }
   const l3User: AuthUser = { ...baseUser, trustLevel: 3 }
   const unverifiedL2: AuthUser = { ...l2User, emailVerified: null }
 
-  it('rejects unauthenticated', () => {
-    expect(canAppeal(null)).toEqual({ ok: false, reason: 'permission.mustLogin' })
+  it('rejects unauthenticated (regardless of type)', () => {
+    expect(canAppeal(null, 'OWN_SUBMISSION_REJECT')).toEqual({
+      ok: false,
+      reason: 'permission.mustLogin',
+    })
   })
   it('rejects banned user', () => {
-    expect(canAppeal(bannedUser)).toEqual({ ok: false, reason: 'permission.accountBanned' })
+    expect(canAppeal(bannedUser, 'REPORT_CLOSED')).toEqual({
+      ok: false,
+      reason: 'permission.accountBanned',
+    })
   })
   it('rejects unverified email', () => {
-    expect(canAppeal(unverifiedL2)).toEqual({
+    expect(canAppeal(unverifiedL2, 'REPORT_DATA_ERROR')).toEqual({
       ok: false,
       reason: 'permission.needsEmailVerification',
     })
   })
-  it('rejects L0', () => {
-    expect(canAppeal(l0User)).toEqual({ ok: false, reason: 'permission.trustLevelTooLow' })
+
+  describe('L1 types (OWN_SUBMISSION_REJECT / SELF_SOFT_DELETE / REPORT_CLOSED / REPORT_NO_TOILET)', () => {
+    it('rejects L0', () => {
+      expect(canAppeal(l0User, 'REPORT_CLOSED')).toEqual({
+        ok: false,
+        reason: 'permission.trustLevelTooLow',
+      })
+    })
+    it('accepts L1 for OWN_SUBMISSION_REJECT', () => {
+      expect(canAppeal(l1User, 'OWN_SUBMISSION_REJECT')).toEqual({ ok: true })
+    })
+    it('accepts L1 for SELF_SOFT_DELETE', () => {
+      expect(canAppeal(l1User, 'SELF_SOFT_DELETE')).toEqual({ ok: true })
+    })
+    it('accepts L1 for REPORT_CLOSED', () => {
+      expect(canAppeal(l1User, 'REPORT_CLOSED')).toEqual({ ok: true })
+    })
+    it('accepts L1 for REPORT_NO_TOILET', () => {
+      expect(canAppeal(l1User, 'REPORT_NO_TOILET')).toEqual({ ok: true })
+    })
   })
+
+  describe('L2 types (REPORT_DATA_ERROR / SUGGEST_EDIT)', () => {
+    it('rejects L1 for REPORT_DATA_ERROR', () => {
+      expect(canAppeal(l1User, 'REPORT_DATA_ERROR')).toEqual({
+        ok: false,
+        reason: 'permission.trustLevelTooLow',
+      })
+    })
+    it('rejects L1 for SUGGEST_EDIT', () => {
+      expect(canAppeal(l1User, 'SUGGEST_EDIT')).toEqual({
+        ok: false,
+        reason: 'permission.trustLevelTooLow',
+      })
+    })
+    it('accepts L2 for REPORT_DATA_ERROR', () => {
+      expect(canAppeal(l2User, 'REPORT_DATA_ERROR')).toEqual({ ok: true })
+    })
+    it('accepts L2 for SUGGEST_EDIT', () => {
+      expect(canAppeal(l2User, 'SUGGEST_EDIT')).toEqual({ ok: true })
+    })
+    it('accepts L3 for all types', () => {
+      expect(canAppeal(l3User, 'SUGGEST_EDIT')).toEqual({ ok: true })
+      expect(canAppeal(l3User, 'REPORT_DATA_ERROR')).toEqual({ ok: true })
+    })
+  })
+})
+
+describe('canSoftDeleteOwnToilet (M7 P1.5)', () => {
+  it('rejects unauthenticated', () => {
+    expect(canSoftDeleteOwnToilet(null, { submittedById: 'u2' })).toEqual({
+      ok: false,
+      reason: 'permission.mustLogin',
+    })
+  })
+  it('rejects banned', () => {
+    expect(canSoftDeleteOwnToilet(bannedUser, { submittedById: bannedUser.id })).toEqual({
+      ok: false,
+      reason: 'permission.accountBanned',
+    })
+  })
+  it('rejects toilet submitted by someone else', () => {
+    expect(canSoftDeleteOwnToilet(baseUser, { submittedById: 'someone-else' })).toEqual({
+      ok: false,
+      reason: 'permission.notYourSubmission',
+    })
+  })
+  it('rejects OSM-sourced toilet (no submitter)', () => {
+    expect(canSoftDeleteOwnToilet(baseUser, { submittedById: null })).toEqual({
+      ok: false,
+      reason: 'permission.notYourSubmission',
+    })
+  })
+  it('accepts own toilet', () => {
+    expect(canSoftDeleteOwnToilet(baseUser, { submittedById: baseUser.id })).toEqual({
+      ok: true,
+    })
+  })
+})
+
+describe('canSuggestEdit (M7 P1.5, alias of canAppeal SUGGEST_EDIT)', () => {
+  const l1User: AuthUser = { ...baseUser, trustLevel: 1 }
+  const l2User: AuthUser = { ...baseUser, trustLevel: 2 }
+
   it('rejects L1', () => {
-    expect(canAppeal(l1User)).toEqual({ ok: false, reason: 'permission.trustLevelTooLow' })
+    expect(canSuggestEdit(l1User)).toEqual({
+      ok: false,
+      reason: 'permission.trustLevelTooLow',
+    })
   })
   it('accepts L2', () => {
-    expect(canAppeal(l2User)).toEqual({ ok: true })
-  })
-  it('accepts L3', () => {
-    expect(canAppeal(l3User)).toEqual({ ok: true })
+    expect(canSuggestEdit(l2User)).toEqual({ ok: true })
   })
 })
