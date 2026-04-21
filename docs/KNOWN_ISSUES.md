@@ -26,17 +26,20 @@ true`（跟随用户移动重新 center）+ 纯圆点标记。
 **清理时机**：M12 之前评估。如果 M12 决定切回自托管 Planetiler，这个文件用作
 回退起点；如果 M12 继续用 Protomaps，清理即可。
 
-### Protomaps 公网 sample dataset 依赖
+### ~~Protomaps 公网 sample dataset 依赖~~ → 已回退到 R2 自托管 (2026-04-21)
 
-**背景**：basemap source 指向 `https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20240814.pmtiles`。Protomaps 官方把此 URL 标为 sample / demo 用途。
-**风险**：
-1. Protomaps 可能随时 rotate sample URL（snapshot 是 2024-08-14 静态版本，过时风险）
-2. 流量压过大（万级 DAU）可能被 Protomaps 拉黑或限流
-3. 非实时更新——OSM 数据是 2024-08-14 冻结
-**缓解路径**：
-- MVP 流量下问题很小，观察 M10 P2 上线后用户量
-- 切 `api.protomaps.com/tiles` 付费方案（需注册 + key + env `NEXT_PUBLIC_PROTOMAPS_KEY`）
-- 或自建 Planetiler 流水线（docs/MAP_DATA.md 下半段保留了旧流程）
+**原计划**：basemap source 指向 `https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20240814.pmtiles`。
+**实际结果**：Ming 第一次 prod 验证时该 URL 返回 **HTTP 404**。同日复查 `https://build.protomaps.com/20240801.pmtiles` 等所有备用 URL 同样 404 — Protomaps 会 rotate sample snapshots off their CDN 不发公告。
+**决策**：回退到 R2 自托管 `tokyo.pmtiles`（commit `b717ab1`）。MAX_BOUNDS 也恢复到 Kanto bbox，防止 zoom out 出现空白画布。覆盖重回东京 only。
+**M12 决策矩阵**（全球覆盖的 3 条路）：
+
+| 路径 | 工作量 | 运维成本 | 风险 |
+|---|---|---|---|
+| 自建 Planetiler + R2（全球子集，几百 MB-几 GB） | 1-2 天流水线 + 每季度 regen | R2 存储 / 流量（开始免费） | 初次 Planetiler 调优 |
+| Protomaps 付费 `api.protomaps.com/tiles` | 半天接 key + 改 source 协议（MVT tile 非 pmtiles） | $500/月起 | 厂商锁定 |
+| 第三方公网 pmtiles（社区 host） | 几小时切 URL | 零 | 同样 rotate 风险，未来又挂 |
+
+**推荐**：M12 走"自建 Planetiler + R2"路径。docs/MAP_DATA.md 下半段保留了完整 Planetiler 流水线文档。
 
 ### Toilet 数据仍仅东京 (M12 对应)
 
