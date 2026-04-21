@@ -259,6 +259,51 @@
       "reviews": "评论队列",
       "appeals": "申诉队列"
     },
+    "appeals": {
+      "title": "申诉裁决",
+      "loading": "加载中…",
+      "empty": "队列已清空",
+      "emptyHint": "暂无待裁决申诉。",
+      "filterType": "类型筛选",
+      "filterAll": "全部",
+      "totalItems": "共 {count} 条",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "aiReasons": "AI 判断理由（仅供参考）",
+      "untitledToilet": "（未命名厕所）",
+      "targetStatus": "厕所当前状态",
+      "targetMissing": "目标厕所不存在",
+      "reasonHeader": "申诉理由",
+      "uphold": "支持申诉",
+      "dismiss": "驳回",
+      "upholdDialogTitle": "确认支持该申诉？",
+      "dismissDialogTitle": "确认驳回该申诉？",
+      "resolveNoteLabel": "裁决说明（可选，给申诉人看）",
+      "resolveNotePlaceholder": "例：已确认现场情况属实 / 证据不足，建议补充。",
+      "cancel": "取消",
+      "confirm": "确认",
+      "toastUpheld": "申诉已支持",
+      "toastDismissed": "申诉已驳回",
+      "diff": {
+        "header": "建议的修改：",
+        "name": "名称",
+        "address": "地址",
+        "type": "类型",
+        "floor": "楼层"
+      },
+      "type": {
+        "REPORT_NO_TOILET": { "label": "无厕所", "shortLabel": "无厕所" },
+        "REPORT_CLOSED": { "label": "已关闭", "shortLabel": "已关闭" },
+        "SUGGEST_EDIT": { "label": "信息修改", "shortLabel": "修改" },
+        "REPORT_DATA_ERROR": { "label": "数据错误", "shortLabel": "数据错误" },
+        "OWN_SUBMISSION_REJECT": { "label": "申诉自己被拒", "shortLabel": "自己被拒" },
+        "SELF_SOFT_DELETE": { "label": "撤回自己提交", "shortLabel": "自己撤回" }
+      },
+      "error": {
+        "UNAUTHORIZED": "请先登录",
+        "FORBIDDEN": "你没有权限执行该操作",
+        "generic": "操作失败，请重试"
+      }
+    },
     "reviews": {
       "title": "评论审核",
       "loading": "加载中…",

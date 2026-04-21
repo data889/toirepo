@@ -259,6 +259,51 @@
       "reviews": "Review queue",
       "appeals": "Appeals"
     },
+    "appeals": {
+      "title": "Appeal resolution",
+      "loading": "Loading…",
+      "empty": "Queue is clear",
+      "emptyHint": "No pending appeals.",
+      "filterType": "Filter by type",
+      "filterAll": "All",
+      "totalItems": "{count} items",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "aiReasons": "AI reasons (advisory)",
+      "untitledToilet": "(Untitled toilet)",
+      "targetStatus": "Current toilet status",
+      "targetMissing": "Target toilet missing",
+      "reasonHeader": "Appeal reason",
+      "uphold": "Uphold",
+      "dismiss": "Dismiss",
+      "upholdDialogTitle": "Uphold this appeal?",
+      "dismissDialogTitle": "Dismiss this appeal?",
+      "resolveNoteLabel": "Resolution note (optional, visible to appellant)",
+      "resolveNotePlaceholder": "e.g. Confirmed on-site / insufficient evidence, please add more.",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "toastUpheld": "Appeal upheld",
+      "toastDismissed": "Appeal dismissed",
+      "diff": {
+        "header": "Proposed changes:",
+        "name": "Name",
+        "address": "Address",
+        "type": "Type",
+        "floor": "Floor"
+      },
+      "type": {
+        "REPORT_NO_TOILET": { "label": "No toilet", "shortLabel": "No toilet" },
+        "REPORT_CLOSED": { "label": "Closed", "shortLabel": "Closed" },
+        "SUGGEST_EDIT": { "label": "Edit suggestion", "shortLabel": "Edit" },
+        "REPORT_DATA_ERROR": { "label": "Data error", "shortLabel": "Data error" },
+        "OWN_SUBMISSION_REJECT": { "label": "Re-review my reject", "shortLabel": "Re-review" },
+        "SELF_SOFT_DELETE": { "label": "Withdraw own submission", "shortLabel": "Self withdraw" }
+      },
+      "error": {
+        "UNAUTHORIZED": "Please sign in",
+        "FORBIDDEN": "You don't have permission",
+        "generic": "Action failed, please retry"
+      }
+    },
     "reviews": {
       "title": "Review moderation",
       "loading": "Loading…",

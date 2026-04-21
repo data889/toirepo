@@ -259,6 +259,51 @@
       "reviews": "レビュー審査",
       "appeals": "申し立て"
     },
+    "appeals": {
+      "title": "申し立て裁定",
+      "loading": "読み込み中…",
+      "empty": "キューは空です",
+      "emptyHint": "裁定待ちの申し立てはありません。",
+      "filterType": "種類で絞り込み",
+      "filterAll": "すべて",
+      "totalItems": "{count} 件",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "aiReasons": "AI 判断理由（参考のみ）",
+      "untitledToilet": "（無題のトイレ）",
+      "targetStatus": "トイレ現在の状態",
+      "targetMissing": "対象トイレが存在しません",
+      "reasonHeader": "申し立て理由",
+      "uphold": "申し立てを支持",
+      "dismiss": "却下",
+      "upholdDialogTitle": "この申し立てを支持しますか？",
+      "dismissDialogTitle": "この申し立てを却下しますか？",
+      "resolveNoteLabel": "裁定コメント（任意・申立人に表示）",
+      "resolveNotePlaceholder": "例：現地確認済み / 証拠不十分のため追加を依頼。",
+      "cancel": "キャンセル",
+      "confirm": "確定",
+      "toastUpheld": "申し立てを支持しました",
+      "toastDismissed": "申し立てを却下しました",
+      "diff": {
+        "header": "提案された変更：",
+        "name": "名称",
+        "address": "住所",
+        "type": "種類",
+        "floor": "階"
+      },
+      "type": {
+        "REPORT_NO_TOILET": { "label": "トイレなし", "shortLabel": "トイレなし" },
+        "REPORT_CLOSED": { "label": "閉店", "shortLabel": "閉店" },
+        "SUGGEST_EDIT": { "label": "情報修正", "shortLabel": "修正" },
+        "REPORT_DATA_ERROR": { "label": "データ誤り", "shortLabel": "データ誤り" },
+        "OWN_SUBMISSION_REJECT": { "label": "却下の再審査", "shortLabel": "再審査" },
+        "SELF_SOFT_DELETE": { "label": "自分の投稿削除", "shortLabel": "自己削除" }
+      },
+      "error": {
+        "UNAUTHORIZED": "ログインが必要です",
+        "FORBIDDEN": "この操作の権限がありません",
+        "generic": "操作に失敗しました。再試行してください"
+      }
+    },
     "reviews": {
       "title": "レビュー審査",
       "loading": "読み込み中…",
