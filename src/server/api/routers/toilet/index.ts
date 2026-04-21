@@ -19,9 +19,16 @@ interface BboxRow {
   name: LocalizedJson
   address: LocalizedJson
   type: string
+  status: string
   latitude: number
   longitude: number
 }
+
+// M7 P2.1: which statuses are publicly visible on the map / drawer.
+// REJECTED + HIDDEN + ARCHIVED + PENDING stay hidden. CLOSED +
+// NO_TOILET_HERE join APPROVED — they're community-warning states,
+// dimmed in the UI but information-bearing.
+const PUBLIC_VISIBLE_STATUSES = ['APPROVED', 'CLOSED', 'NO_TOILET_HERE'] as const
 
 export const toiletRouter = createTRPCRouter({
   list: publicProcedure.input(ListInputSchema).query(async ({ ctx, input }) => {
@@ -33,9 +40,9 @@ export const toiletRouter = createTRPCRouter({
       // Unsupported geography column. ST_MakeEnvelope builds a polygon
       // in SRID 4326; cast to geography matches Toilet.location's type.
       const rows = await ctx.db.$queryRaw<BboxRow[]>(Prisma.sql`
-        SELECT id, slug, name, address, type::text, latitude, longitude
+        SELECT id, slug, name, address, type::text, status::text, latitude, longitude
         FROM "Toilet"
-        WHERE status = 'APPROVED'
+        WHERE status IN ('APPROVED', 'CLOSED', 'NO_TOILET_HERE')
           AND ST_Intersects(
             location,
             ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326)::geography
@@ -47,13 +54,14 @@ export const toiletRouter = createTRPCRouter({
 
     // No bbox: standard Prisma query, no PostGIS round-trip.
     const rows = await ctx.db.toilet.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: { in: [...PUBLIC_VISIBLE_STATUSES] } },
       select: {
         id: true,
         slug: true,
         name: true,
         address: true,
         type: true,
+        status: true,
         latitude: true,
         longitude: true,
       },
@@ -64,7 +72,7 @@ export const toiletRouter = createTRPCRouter({
 
   getBySlug: publicProcedure.input(GetBySlugInputSchema).query(async ({ ctx, input }) => {
     const toilet = await ctx.db.toilet.findFirst({
-      where: { slug: input.slug, status: 'APPROVED' },
+      where: { slug: input.slug, status: { in: [...PUBLIC_VISIBLE_STATUSES] } },
       include: {
         photos: {
           select: {

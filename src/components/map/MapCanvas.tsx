@@ -220,6 +220,22 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
               },
+              paint: {
+                // M7 P2.1: dim community-warning statuses in place
+                // (CLOSED + NO_TOILET_HERE) so users see the marker is
+                // there but a notice is attached. APPROVED stays full
+                // opacity. REJECTED/HIDDEN never reach the layer —
+                // toilet.list filters them out server-side.
+                'icon-opacity': [
+                  'match',
+                  ['get', 'status'],
+                  'CLOSED',
+                  0.4,
+                  'NO_TOILET_HERE',
+                  0.4,
+                  1,
+                ],
+              },
             })
 
             attachToiletClickHandlers(map, (slug) => setOpenedSlugRef.current(slug))
