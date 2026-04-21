@@ -71,7 +71,10 @@
       "count": "{count} 人确认",
       "selfConfirmed": "已确认",
       "action": "我也确认",
-      "requireLogin": "登录后才能确认"
+      "requireLogin": "登录后才能确认",
+      "errorUnauthorized": "请先登录",
+      "errorTooFrequent": "确认太频繁，稍后再试",
+      "errorGeneric": "操作失败，请重试"
     },
     "review": {
       "empty": "还没有评论",

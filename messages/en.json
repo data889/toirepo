@@ -71,7 +71,10 @@
       "count": "{count} confirmed",
       "selfConfirmed": "Confirmed",
       "action": "Confirm",
-      "requireLogin": "Sign in to confirm"
+      "requireLogin": "Sign in to confirm",
+      "errorUnauthorized": "Please sign in",
+      "errorTooFrequent": "Too many confirmations — try again later",
+      "errorGeneric": "Action failed, please retry"
     },
     "review": {
       "empty": "No reviews yet",

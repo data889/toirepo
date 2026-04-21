@@ -71,7 +71,10 @@
       "count": "{count} 人が確認",
       "selfConfirmed": "確認済み",
       "action": "確認する",
-      "requireLogin": "確認するにはログインが必要です"
+      "requireLogin": "確認するにはログインが必要です",
+      "errorUnauthorized": "ログインが必要です",
+      "errorTooFrequent": "確認の頻度が高すぎます。少し時間をおいて再試行してください",
+      "errorGeneric": "操作に失敗しました。再試行してください"
     },
     "review": {
       "empty": "まだレビューがありません",
