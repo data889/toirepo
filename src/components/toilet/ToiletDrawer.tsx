@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSession } from '@/hooks/useSession'
+import { track } from '@/lib/analytics/posthog'
 import {
   Sheet,
   SheetContent,
@@ -110,6 +111,18 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
   const myReview = session.user
     ? reviewsQuery.data?.reviews.find((r) => r.user.id === session.user!.id)
     : undefined
+
+  // M10 P1 analytics: fire toilet_viewed once per toilet open. Drawer
+  // mounts persistently, so guard on toilet.id changing.
+  useEffect(() => {
+    if (toilet) {
+      track('toilet_viewed', {
+        toiletId: toilet.id,
+        type: toilet.type,
+        status: toilet.status,
+      })
+    }
+  }, [toilet?.id, toilet?.status, toilet?.type, toilet])
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>

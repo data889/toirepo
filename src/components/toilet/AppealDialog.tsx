@@ -10,6 +10,7 @@ import { useRouter, usePathname } from '@/i18n/navigation'
 import { api } from '@/lib/trpc/client'
 import { uploadPhotoToR2, type UploadedPhoto } from '@/lib/photo-upload'
 import { useSession } from '@/hooks/useSession'
+import { track } from '@/lib/analytics/posthog'
 import { resolveToiletName, resolveToiletAddress } from '@/lib/map/toilet-labels'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -285,6 +286,7 @@ export function AppealDialog({ open, onClose, toilet, initialType }: AppealDialo
       }
       await createAppeal.mutateAsync(payload)
       toast.success(t('toastSuccess'))
+      track('appeal_created', { toiletId: toilet.id, type: chosen })
       onClose()
     } catch (e) {
       const code = e instanceof TRPCClientError ? (e.data?.code ?? 'UNKNOWN') : 'UNKNOWN'

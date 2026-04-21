@@ -13,6 +13,7 @@ import { useRouter, usePathname } from '@/i18n/navigation'
 import { api } from '@/lib/trpc/client'
 import { uploadPhotoToR2, type UploadedPhoto } from '@/lib/photo-upload'
 import { useSession } from '@/hooks/useSession'
+import { track } from '@/lib/analytics/posthog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -131,6 +132,7 @@ export function ReviewForm({ toiletId, open, onClose, existing }: ReviewFormProp
       // is reserved for V1.0). Toast wording reflects actual status.
       const successKey = result.status === 'PENDING' ? 'success' : 'successAutoPublished'
       toast.success(t(successKey))
+      track('review_submitted', { toiletId, rating, serverStatus: result.status })
       await utils.review.listByToilet.invalidate({ toiletId })
       onClose()
     } catch (e) {

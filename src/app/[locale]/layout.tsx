@@ -4,6 +4,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { routing } from '@/i18n/routing'
 import { TRPCProvider } from '@/lib/trpc/client'
 import { SessionProvider } from '@/components/providers/SessionProvider'
+import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider'
 import { ServiceWorkerRegistrar } from '@/components/pwa/ServiceWorkerRegistrar'
 import { Toaster } from '@/components/ui/sonner'
 import { getSiteUrl } from '@/lib/site-url'
@@ -106,6 +107,7 @@ export default async function LocaleLayout({
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
         <NextIntlClientProvider>
           <SessionProvider>
+            <AnalyticsProvider />
             <TRPCProvider>{children}</TRPCProvider>
           </SessionProvider>
         </NextIntlClientProvider>

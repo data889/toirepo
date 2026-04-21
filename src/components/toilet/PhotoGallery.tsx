@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useBatchPhotoUrls } from '@/hooks/useBatchPhotoUrls'
+import { track } from '@/lib/analytics/posthog'
 
 export interface GalleryPhoto {
   id: string
@@ -11,9 +12,15 @@ export interface GalleryPhoto {
   height: number
 }
 
+export interface PhotoGalleryProps {
+  photos: GalleryPhoto[]
+  /** Where this gallery is rendered — drives the photo_viewed analytics event. */
+  source?: 'drawer' | 'detail' | 'gallery'
+}
+
 // Simple grid gallery. Full-size URL opens in a new tab — no lightbox
 // until M7+ (per scope note in M5 Prompt 3).
-export function PhotoGallery({ photos }: { photos: GalleryPhoto[] }) {
+export function PhotoGallery({ photos, source = 'gallery' }: PhotoGalleryProps) {
   const keys = photos.flatMap((p) => [p.url, p.thumbnailUrl])
   const { urls } = useBatchPhotoUrls(keys)
 
@@ -33,6 +40,7 @@ export function PhotoGallery({ photos }: { photos: GalleryPhoto[] }) {
               rel="noopener noreferrer"
               className="border-border-soft bg-paper-deep relative block aspect-square overflow-hidden rounded border"
               aria-disabled={!fullUrl}
+              onClick={() => track('photo_viewed', { source })}
             >
               {thumbUrl ? (
                 <Image

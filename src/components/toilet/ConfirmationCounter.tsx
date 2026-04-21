@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSession } from '@/hooks/useSession'
 import { useRouter, usePathname } from '@/i18n/navigation'
+import { track } from '@/lib/analytics/posthog'
 
 // "X people confirmed this still works" + a toggle button.
 // P2.2: wired to api.confirmation.toggle with optimistic update.
@@ -43,6 +44,12 @@ export function ConfirmationCounter({ toiletId }: ConfirmationCounterProps) {
           count: old.count + (wasSelfConfirmed ? -1 : 1),
           selfConfirmed: !wasSelfConfirmed,
         }
+      })
+      // Fire analytics on the optimistic state — server roundtrip
+      // doesn't change the user-intent we want to capture
+      track('confirmation_toggled', {
+        toiletId,
+        confirmed: !(prev?.selfConfirmed ?? false),
       })
       return { prev }
     },
