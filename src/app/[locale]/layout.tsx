@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation'
 import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { routing } from '@/i18n/routing'
 import { TRPCProvider } from '@/lib/trpc/client'
+import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ServiceWorkerRegistrar } from '@/components/pwa/ServiceWorkerRegistrar'
+import { Toaster } from '@/components/ui/sonner'
 import '../globals.css'
 
 // PWA wiring (M9 P1). The manifest lives at /manifest.webmanifest via
@@ -60,8 +62,11 @@ export default async function LocaleLayout({
     <html lang={locale} className="h-full antialiased">
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
         <NextIntlClientProvider>
-          <TRPCProvider>{children}</TRPCProvider>
+          <SessionProvider>
+            <TRPCProvider>{children}</TRPCProvider>
+          </SessionProvider>
         </NextIntlClientProvider>
+        <Toaster position="top-center" />
         <ServiceWorkerRegistrar />
       </body>
     </html>
