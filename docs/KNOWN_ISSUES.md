@@ -5,6 +5,89 @@
 
 ---
 
+## M7 P2.1 追踪 (2026-04-21)
+
+### PENDING own-submission overlay 推迟到 M10 polish
+
+**背景**：地图 marker 目前按 ToiletStatus 显示 APPROVED / CLOSED /
+NO_TOILET_HERE 三态视觉。对于 `status=PENDING` 的自己提交，产品上希望给
+marker 叠一个橙色小圆圈提示"你提交的还在审核"。P2.1 未实现。
+**原因**：要加这个需要 (a) MapCanvas 挂上 SessionProvider 或者从 server
+传入 userId prop，(b) 客户端 session query + GeoJSON 源按 submittedById
+分组过滤，(c) 新 symbol layer + 独立图标资产。工程量超 P2.1 范围。
+**推迟到 M10 polish 的原因**：M10 部署前本来就要做 UI polish 轮，session
+client 基建和 marker overlay 一起做更经济。
+**触发条件**：M10 前置、或用户反馈明确需求、或自己账户提交量累积后痛感强。
+**影响**：已提交者暂时看不到自己 PENDING 的厕所（只能走 /me/submissions
+页面看到），非阻塞。
+
+### ReviewItem / ReviewList / ConfirmationCounter 无 RTL 测试
+
+**背景**：P2.1 的 RTL 测试只覆盖 4 个纯展示组件：StarRating /
+ToiletStatusBadge / TrustBadge / RatingSummary。剩下 3 个组件未加测试。
+**原因**：这 3 个组件直接依赖 tRPC client（`api.review.listByToilet` /
+`api.confirmation.countByToilet`）或 useBatchPhotoUrls hook，RTL mock 基建
+成本（msw handler + QueryClient wrapper + tRPC provider 封装）超 P2.1 时间
+预算。
+**延后计划**：P2.2 写表单交互时一次性铺设 msw + QueryClient 测试工具
+（反正评论提交 / Confirmation toggle 表单也要 mock tRPC mutation），ReviewItem
+/ ReviewList / ConfirmationCounter 测试顺带写。
+**触发补齐**：线上发现组件渲染 regression（例如评论列表空态 / 加载态 /
+错误态显示错误）；或 P2.2 开工即补。
+**影响**：组件 UI 简单，手工目测覆盖；无测试不等于无行为保证。
+
+### happy-dom 替代 jsdom 选型（决策记录）
+
+**决策**：P2.1 引入 RTL 时 vitest env 选 happy-dom，不选 jsdom。
+**理由**：happy-dom 启动 ~50ms vs jsdom ~200ms，88 个测试的 setup 成本
+差 ~13s；本地 watch 模式体验差异明显。
+**兼容性**：jest-dom matchers 通过 `@testing-library/jest-dom/vitest`
+入口自动适配 happy-dom，P2.1 已验证 `toBeInTheDocument` 等 matcher 工作正常。
+**风险**：happy-dom 对部分 CSS computed style / animation API / 特定
+DOM 细节的覆盖度略低于 jsdom。未来若测试撞到这些边界，可选择：
+(a) 单测试文件 override env 为 jsdom，或 (b) 整体切换。
+**非技术债，是决策记录**：记在这里方便未来评估。
+
+### photo.getViewUrls 改 publicProcedure
+
+**背景**：P2.1 实机验收发现匿名访客点开 drawer 触发 10+ 条 UNAUTHORIZED
+console error，根因是 `photo.getViewUrls` 原为 protectedProcedure。匿名
+浏览本来就是 M7 P2.1 读路径的产品设计（"先看图判断信号"），登录门槛伤
+UX。
+**处理**：`photo.getViewUrls` 改为公开路径，新增 IP-based rate limit
+`photo:view` 60/min/IP。
+**防御面**：
+- 60/min/IP 足够正常浏览（同时开多个 drawer），触顶是爬虫行为
+- 1h presigned TTL 限制单 URL 价值
+- R2 bucket 级 bandwidth 监控需 M10 部署时接入
+**risk / 未来动作**：
+- M10 部署后 1-2 周观察 R2 bandwidth 曲线，若异常（远超用户规模线性预期）
+  排查爬虫
+- 若爆爬虫，降级路径：(a) thumbnail 公开 + original session-gated，或
+  (b) 加 per-IP daily cap 叠在 per-min 上
+- `createUploadUrl` 保持 protectedProcedure，上传侧不受影响
+
+### tRPC loggerLink 降级为按 code 分流
+
+**背景**：原 loggerLink 把所有失败 query 送 console.error（包括 401 / 403
+/ 404 / 400 这些业务正常的预期错误），dev console 被红色噪音淹没掩盖真
+defect。P2.1 验收时从 photo.getViewUrls 问题顺手修掉。
+**处理**：`src/lib/trpc/client.tsx` 自定义 logger：
+- 成功 query：不打印（默认过于 noisy）
+- 上行请求：`console.info`（浏览器默认隐藏）
+- 下行失败且 code ∈ {UNAUTHORIZED / FORBIDDEN / NOT_FOUND / BAD_REQUEST /
+  UNPROCESSABLE_CONTENT / TOO_MANY_REQUESTS}：`console.warn`
+- 下行失败且 code 其他（INTERNAL_SERVER_ERROR / 网络错误 / UNKNOWN）：
+  `console.error`
+**生产环境不变**：`enabled: NODE_ENV === 'development'`，prod 构建整个
+loggerLink 沉默。
+**风险**：若未来新增 tRPC error code（比如 trpc v12 新枚举），默认走
+`console.error` fallback 保守处理，需要时更新 `SOFT_TRPC_CODES` 集合。
+**非决策债**：降噪有明确收益，无悬而未决项，记录以便追溯"为什么 dev
+console 不全红"。
+
+---
+
 ## M7 P1.5 追踪 (2026-04-21)
 
 ### AppealType enum swap 手工操作
