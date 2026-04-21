@@ -21,6 +21,38 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { db } from '@/server/db'
 import { translate, type ToirepoLocale } from '@/server/deepl/client'
+import { applyBrandOverrides, formatEnglishAddress, hasKana } from '@/server/deepl/brand-overrides'
+
+// Translation strategy per cell (M8 brand-overrides extension):
+//   1. Run brand-overrides against the ja source. Known brand names,
+//      station names, and facility nouns substitute in place.
+//   2. If the result is kana-free (pure kanji + latin + digits), skip
+//      DeepL and save a request. Kanji passes through to zh-CN
+//      natively; numbers/latin to en.
+//   3. Otherwise (hiragana/katakana remains), send the ORIGINAL ja
+//      text to DeepL (not the partially-replaced mess — mixing
+//      languages confuses the engine) and re-apply overrides on the
+//      DeepL result to correct anything mistranslated (劳森 → 罗森,
+//      Seven-Eleven → 7-Eleven).
+//   4. For en address output, formatEnglishAddress inserts the dashes
+//      DeepL drops ("25 20" → "25-20").
+async function translateCell(
+  source: string,
+  target: ToirepoLocale,
+  sourceLocale: ToirepoLocale,
+  kind: 'name' | 'address',
+): Promise<{ text: string; usedDeepL: boolean }> {
+  const overridden = applyBrandOverrides(source, target)
+  const finishAddress = (s: string) =>
+    kind === 'address' && target === 'en' ? formatEnglishAddress(s) : s
+
+  if (!hasKana(overridden)) {
+    return { text: finishAddress(overridden), usedDeepL: false }
+  }
+  const deeplOut = await translate(source, target, sourceLocale)
+  const corrected = applyBrandOverrides(deeplOut, target)
+  return { text: finishAddress(corrected), usedDeepL: true }
+}
 
 type LocalizedValue = Record<string, string>
 
@@ -139,8 +171,6 @@ async function translateBatch(work: TranslationWork[]): Promise<{
 
       for (const [loc, sourceText] of Object.entries(item.planName)) {
         if (!sourceText) continue
-        // Source locale detection: whichever locale originally carries
-        // the text. ja is the most common for OSM imports.
         const srcLocale = (
           (item.currentName as LocalizedValue)?.ja
             ? 'ja'
@@ -148,9 +178,14 @@ async function translateBatch(work: TranslationWork[]): Promise<{
               ? 'zh-CN'
               : 'en'
         ) as ToirepoLocale
-        const out = await translate(sourceText, loc as ToirepoLocale, srcLocale)
-        newName[loc] = out
-        charsUsed += sourceText.length
+        const { text, usedDeepL } = await translateCell(
+          sourceText,
+          loc as ToirepoLocale,
+          srcLocale,
+          'name',
+        )
+        newName[loc] = text
+        if (usedDeepL) charsUsed += sourceText.length
       }
 
       for (const [loc, sourceText] of Object.entries(item.planAddress)) {
@@ -162,9 +197,14 @@ async function translateBatch(work: TranslationWork[]): Promise<{
               ? 'zh-CN'
               : 'en'
         ) as ToirepoLocale
-        const out = await translate(sourceText, loc as ToirepoLocale, srcLocale)
-        newAddress[loc] = out
-        charsUsed += sourceText.length
+        const { text, usedDeepL } = await translateCell(
+          sourceText,
+          loc as ToirepoLocale,
+          srcLocale,
+          'address',
+        )
+        newAddress[loc] = text
+        if (usedDeepL) charsUsed += sourceText.length
       }
 
       translated.push({ toiletId: item.toiletId, slug: item.slug, newName, newAddress })
