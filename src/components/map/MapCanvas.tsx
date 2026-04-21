@@ -31,9 +31,14 @@ export interface MapCanvasProps {
   className?: string
 }
 
-// M12 debug: temporary logging to diagnose "backend returns N rows,
-// no markers render" path. Remove once Ming's console trace pinpoints
-// the stuck step. Grep browser console for [MapCanvas].
+// Lightweight ops trace. Preserved after M12 debug (zoom zod bug
+// diagnosis) because the surviving logs are cheap and give future
+// readers a breadcrumb trail from user gesture to marker render:
+//   syncViewport — bbox/zoom after each settle
+//   data-effect — how many rows arrived, how many features rendered
+// Higher-volume logs (render snapshots, raw-fetch shadow requests,
+// moveend debounce-enqueue traces) were removed — they only paid
+// off during the root-cause hunt. Grep [MapCanvas] in browser console.
 const DBG = '[MapCanvas]'
 
 export function MapCanvas({ className, style }: MapCanvasProps) {
@@ -108,35 +113,6 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     },
   )
 
-  // DBG: render-time snapshot. Fires on every React render so is
-  // noisy — grep for specific transitions. In prod builds the tRPC
-  // loggerLink is disabled (gated on NODE_ENV==='development'), so
-  // the error.message below is the PRIMARY surface for query errors.
-  const errObj = toiletsQuery.error as unknown
-  const errData =
-    errObj && typeof errObj === 'object' && 'data' in errObj
-      ? (errObj as { data?: unknown }).data
-      : null
-  console.log(DBG, 'render', {
-    shouldFetch,
-    viewport,
-    dataRaw:
-      toiletsQuery.data === undefined
-        ? 'UNDEFINED'
-        : toiletsQuery.data === null
-          ? 'NULL'
-          : `array(${(toiletsQuery.data as unknown[]).length})`,
-    isFetching: toiletsQuery.isFetching,
-    isSuccess: toiletsQuery.isSuccess,
-    isError: toiletsQuery.isError,
-    errorMessage: toiletsQuery.error?.message,
-    errorData: errData,
-    errorName:
-      toiletsQuery.error && typeof toiletsQuery.error === 'object'
-        ? toiletsQuery.error.constructor?.name
-        : null,
-  })
-
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const sourceAddedRef = useRef(false)
@@ -155,66 +131,6 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
   useEffect(() => {
     toiletsRef.current = toiletsQuery.data
   }, [toiletsQuery.data])
-
-  // DBG: side-by-side raw fetch against the same endpoint using
-  // plain XHR. Bypasses tRPC client / loggerLink / superjson
-  // decoding. If RAW FETCH prints a populated `json` array but
-  // the `render` log shows dataRaw=UNDEFINED, the issue is in
-  // the tRPC client layer (streaming link / transformer).
-  useEffect(() => {
-    if (!viewport) return
-    const input = {
-      '0': {
-        json: {
-          minLng: viewport.bbox[0],
-          minLat: viewport.bbox[1],
-          maxLng: viewport.bbox[2],
-          maxLat: viewport.bbox[3],
-          zoom: viewport.zoom,
-          limit: 2000,
-        },
-      },
-    }
-    const url = `/api/trpc/toilet.listByBbox?batch=1&input=${encodeURIComponent(JSON.stringify(input))}`
-    console.log(DBG, 'raw-fetch firing', { url: url.slice(0, 120) + '…' })
-    fetch(url)
-      .then((r) => {
-        console.log(DBG, 'raw-fetch http', { status: r.status, ok: r.ok })
-        return r.text().then((text) => ({ text, status: r.status }))
-      })
-      .then(({ text, status }) => {
-        let parsed: unknown = null
-        try {
-          parsed = JSON.parse(text)
-        } catch (e) {
-          console.log(DBG, 'raw-fetch JSON.parse threw', {
-            status,
-            textHead: text.slice(0, 200),
-            err: (e as Error).message,
-          })
-          return
-        }
-        const top = Array.isArray(parsed) ? parsed[0] : parsed
-        const json =
-          top &&
-          typeof top === 'object' &&
-          'result' in top &&
-          (top as { result?: { data?: { json?: unknown } } }).result?.data?.json
-        const err =
-          top && typeof top === 'object' && 'error' in top
-            ? (top as { error?: unknown }).error
-            : null
-        console.log(DBG, 'raw-fetch parsed', {
-          isArray: Array.isArray(parsed),
-          jsonIsArray: Array.isArray(json),
-          jsonLength: Array.isArray(json) ? json.length : null,
-          jsonFirst: Array.isArray(json) && json.length > 0 ? json[0] : null,
-          errPresent: !!err,
-          err,
-        })
-      })
-      .catch((e) => console.log(DBG, 'raw-fetch network error', e))
-  }, [viewport])
   useEffect(() => {
     localeRef.current = locale
   }, [locale])
@@ -224,39 +140,19 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
   useEffect(() => {
     const map = mapRef.current
-    const hasMap = !!map
-    const sourceReady = sourceAddedRef.current
+    if (!map || !sourceAddedRef.current) return
     const toilets = toiletsQuery.data
-    console.log(DBG, 'data-effect', {
-      hasMap,
-      sourceReady,
-      dataCount: toilets?.length,
-      locale,
-    })
-    if (!map || !sourceReady) {
-      console.log(DBG, 'data-effect skip: map or source not ready')
-      return
-    }
-    if (!toilets) {
-      console.log(DBG, 'data-effect skip: data undefined (query in flight?)')
-      return
-    }
+    if (!toilets) return
 
     const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
-    console.log(DBG, 'source lookup', { found: !!source })
     if (!source) return
 
     const geojson = toiletsToGeoJSON(toilets, locale)
-    console.log(DBG, 'setData about to fire', {
+    console.log(DBG, 'data-effect', {
+      dataCount: toilets.length,
       featureCount: geojson.features.length,
-      firstFeature: geojson.features[0],
     })
-    try {
-      source.setData(geojson)
-      console.log(DBG, 'setData returned OK')
-    } catch (e) {
-      console.error(DBG, 'setData threw', e)
-    }
+    source.setData(geojson)
   }, [toiletsQuery.data, locale])
 
   useEffect(() => {
@@ -345,7 +241,6 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           setViewport(next)
         }
         const scheduleViewportSync = () => {
-          console.log(DBG, 'moveend → scheduleViewportSync (500ms debounce)')
           if (viewportDebounceRef.current) clearTimeout(viewportDebounceRef.current)
           viewportDebounceRef.current = setTimeout(syncViewport, 500)
         }
@@ -434,15 +329,11 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
             attachToiletClickHandlers(map, (slug) => setOpenedSlugRef.current(slug))
             sourceAddedRef.current = true
-            console.log(DBG, 'map load complete, source + layers ready')
 
             const toilets = toiletsRef.current
             if (toilets) {
               const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
               if (source) {
-                console.log(DBG, 'load-time replay of stale toiletsRef', {
-                  count: toilets.length,
-                })
                 source.setData(toiletsToGeoJSON(toilets, localeRef.current))
               }
             }
@@ -453,7 +344,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
             syncViewport()
             map.on('moveend', scheduleViewportSync)
           } catch (e) {
-            console.error(DBG, 'Failed to initialize toilet layers:', e)
+            console.error('Failed to initialize toilet layers:', e)
           }
         })
 
