@@ -117,6 +117,29 @@ function slugify(s: string): string {
     .slice(0, 80)
 }
 
+// Deterministic slug from an OSM toilet candidate. The full osmIdShort
+// (e.g. "node-123456789", ~17 chars max) is ALWAYS preserved — that's
+// the only part guaranteed unique. Base is truncated to fit the 80-char
+// Toilet.slug budget. Bug history: previously we did
+// `${base}-${id}`.slice(0, 80) which could clip the id suffix when base
+// was long, collapsing distinct osmIds onto the same slug and throwing
+// P2002 mid-batch (surfaced during prod Asia import, 6000 rows in).
+const MAX_SLUG_LEN = 80
+function computeSlug(c: OsmToiletCandidate): string {
+  const nameSource = c.name.en || c.name.ja || c.name['zh-CN'] || 'toilet'
+  const baseSlug = slugify(nameSource) || 'toilet'
+  const osmIdShort = c.osmId.replace(/\//g, '-')
+  const budgetForBase = MAX_SLUG_LEN - osmIdShort.length - 1 // -1 for the connecting '-'
+  if (budgetForBase <= 0) {
+    // Pathological: osmId alone ≥ 80 chars. OSM IDs cap at ~18 chars
+    // including the "node-"/"way-" prefix, so this branch is defensive
+    // against future format changes rather than a real-world path.
+    return osmIdShort.slice(0, MAX_SLUG_LEN)
+  }
+  const truncatedBase = baseSlug.slice(0, budgetForBase).replace(/-+$/, '')
+  return truncatedBase.length > 0 ? `${truncatedBase}-${osmIdShort}` : osmIdShort
+}
+
 async function fetchRegion(region: Region, useCache: boolean): Promise<OverpassResponse> {
   const cachePath = join(LOGS_DIR, `osm-global-${region.name}.json`)
   if (useCache && existsSync(cachePath)) {
@@ -268,6 +291,49 @@ async function main() {
   console.log(`   Net new inserts:           ${toUpsert.length - alreadyImportedCount}`)
   console.log(`   Total upsert operations:   ${toUpsert.length}`)
 
+  // ── Phase 3.5: slug collision pre-check ──
+  // Surface duplicate slugs BEFORE hitting the DB. Catches both:
+  //   1. Two candidates in this batch produce the same slug (the P2002
+  //      bug at prod Asia batch 6000+).
+  //   2. A candidate's new slug would collide with an existing row's
+  //      slug (possible when healing old-format slugs via update on
+  //      rows that happen to share a base name with a different osmId).
+  // The "claims" map starts seeded with every existing slug tagged by
+  // its owning osmId (or a sentinel for user/seed rows); we then walk
+  // candidates and flag any slug whose claim is held by a different id.
+  const EXISTING_NO_OSMID = '__existing-no-osmid__'
+  const claims = new Map<string, string>() // slug → osmId claiming it
+  for (const e of existing) {
+    if (!claims.has(e.slug)) {
+      claims.set(e.slug, e.osmId ?? EXISTING_NO_OSMID)
+    }
+  }
+  const collisions: Array<[string, string, string]> = [] // [slug, candidate, owner]
+  let uniqueCandidateSlugs = 0
+  for (const c of toUpsert) {
+    const slug = computeSlug(c)
+    const prior = claims.get(slug)
+    if (prior !== undefined && prior !== c.osmId) {
+      collisions.push([slug, c.osmId, prior])
+    } else if (prior === undefined) {
+      claims.set(slug, c.osmId)
+      uniqueCandidateSlugs++
+    }
+  }
+  console.log(`   Unique candidate slugs:    ${uniqueCandidateSlugs} net-new slugs`)
+  console.log(`   Slug collisions:           ${collisions.length}`)
+  if (collisions.length > 0) {
+    console.error(`\n✗ ${collisions.length} slug collision(s) detected — aborting before DB write.`)
+    for (const [slug, candidate, owner] of collisions.slice(0, 10)) {
+      console.error(`   slug='${slug}'  candidate=${candidate}  conflicts-with=${owner}`)
+    }
+    if (collisions.length > 10) {
+      console.error(`   … and ${collisions.length - 10} more.`)
+    }
+    await db.$disconnect()
+    process.exit(1)
+  }
+
   if (dryRun) {
     console.log(`\n✅ DRY RUN complete. No DB changes.`)
     await db.$disconnect()
@@ -284,10 +350,7 @@ async function main() {
     const batch = toUpsert.slice(i, i + BATCH_SIZE)
     await Promise.all(
       batch.map(async (c) => {
-        const nameSource = c.name.en || c.name.ja || c.name['zh-CN'] || 'toilet'
-        const baseSlug = slugify(nameSource) || 'toilet'
-        const osmIdShort = c.osmId.replace(/\//g, '-')
-        const slug = `${baseSlug}-${osmIdShort}`.slice(0, 80)
+        const slug = computeSlug(c)
 
         await db.toilet.upsert({
           where: { osmId: c.osmId },
@@ -304,6 +367,11 @@ async function main() {
             publishedAt: new Date(),
           },
           update: {
+            // slug in update so re-runs heal rows created with the
+            // pre-fix collision-prone truncation. Safe because
+            // computeSlug is deterministic per osmId and the Phase 3.5
+            // check proves no two toUpsert entries share a slug.
+            slug,
             name: c.name,
             address: c.address,
             type: c.type,
