@@ -5,6 +5,67 @@
 
 ---
 
+## M10 P2 polish carryover (2026-04-22)
+
+三个 P2.1 遗留项升级为正式 debt，明确触发条件 + 取消时机，不再散在各章
+
+### PENDING own-submission 橙色 overlay
+
+**背景**：地图 marker 已按 ToiletStatus 分色（APPROVED / CLOSED /
+NO_TOILET_HERE 三态），但用户自己提交且 `status=PENDING` 的厕所**不单独
+标记**。产品目标是给自己 PENDING 的提交一个橙色 outline，提示"还在审
+核中"。
+**进度**：M10 P2 SessionProvider 已挂（client 组件能读 `session.user.id`），
+缺的只是
+1. `toilet.list` 扩展 bbox + include my PENDING（或独立 API
+   `toilet.listMyPending`）
+2. MapCanvas 新增独立 GeoJSON source + symbol layer（橙色 outline，不与
+   APPROVED 聚簇）
+3. `?submittedById=me` 或类似 client-side filter
+**推迟理由**：不阻塞任何核心路径；用户可在 `/me?tab=submissions` 看状态。
+**触发条件**：
+- 用户反馈"提交后不知道在哪看"
+- 或 M12 全球数据后 PENDING 数量显著上升
+**工作量**：半天（1 commit）
+**Vercel plugin 备注**：今晚 MapTiler env 写入 prod 过程中发现 Claude
+Code Vercel plugin 拦截"preview 全分支"非交互写入——要求 explicit
+git-branch。workaround 留本条作提醒：未来预览环境 env 差异需 Ming 手动
+在 Vercel Dashboard 维护（或脚本里遍历分支列表）。
+
+### ReviewForm 编辑 PENDING/REJECTED 完整路径
+
+**背景**：`/me/reviews` 列表里编辑按钮目前跳回 toilet drawer，drawer 的
+ReviewForm 只对 APPROVED review 预填字段（`review.listByToilet` 仅返
+APPROVED）。用户的 PENDING / REJECTED review 在 drawer 重新写等于新建
+（upsert 语义不丢数据，但用户看不到自己原来写的内容）。
+**完整 UX 应有**：
+1. `review.listMine` 已返回 body + rating + photoKeys — 直接预填足够
+2. `/me/reviews` 编辑按钮改为本地 Dialog，绕过 drawer
+3. 保留 drawer 入口（APPROVED 下的 "编辑我的评论"）
+**推迟理由**：用户量少时痛感低；P2.3 写 /me 时刻意简化避免 scope
+蠕变。
+**触发条件**：admin 拒绝率 > 15% 或 /me/reviews 的跳转率 > 删除率（说明
+用户想改不想删）
+**工作量**：半天（1 commit，纯 UI）
+
+### admin review reject note 持久化
+
+**背景**：`admin.resolveReview` mutation 接 `note?: string` 输入，server
+端**丢弃不存**（Review 表无 rejectionNote 列）。当前只靠 Haiku 的
+`aiReasons` 给拒绝解释；admin 手写 note 体验为零。
+**完整 UX 应有**：
+1. Prisma Review 加 `rejectionNote String? @db.Text`
+2. Migration 手写 SQL `ALTER TABLE "Review" ADD COLUMN "rejectionNote"
+   TEXT;` + `prisma migrate resolve --applied` + `prisma generate`
+3. `admin.resolveReview` 写 `{ rejectionNote: input.note ?? null }`
+4. `MyReviewsList` REJECTED 行展示 `adminRejectionNote`（优先于
+   `aiReasons`）
+**Ming 已批准走 Prisma 7 drift 规避路径** — 是 M10 P2 polish 的**最后一
+commit**，放在 OG / JSON-LD / Cloudflare runbook 之后，便于回滚。
+**工作量**：1 commit（migration + router + UI + docs）
+
+---
+
 ## M10 P2 追踪 (2026-04-22)
 
 ### GeolocateControl 无方向跟随箭头
