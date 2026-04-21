@@ -57,6 +57,12 @@ next-env.d.ts
 # Prisma generated client (regenerated on every `pnpm prisma generate`)
 /src/generated/prisma
 
+# Claude Code worktrees. Registered via `git worktree add` — the
+# worktree's own checkout lives here but is tracked under its own
+# branch, never committed to main. Keeps eslint / grep / find from
+# walking into nested working trees from the main repo root.
+.claude/worktrees/
+
 # Map data is kept on external SSD (/Volumes/T7 Shield/toirepo-data/).
 # Any local `data/` directory is defensive — we never intend to place
 # multi-GB pmtiles files inside the repo.
