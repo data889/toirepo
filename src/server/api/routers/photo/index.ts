@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { randomUUID } from 'node:crypto'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { createTRPCRouter, withIpRateLimit, withUserRateLimit } from '../../trpc'
@@ -32,7 +31,7 @@ export const photoRouter = createTRPCRouter({
   createUploadUrl: withUserRateLimit('photo:upload')
     .input(CreateUploadUrlInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const photoId = randomUUID()
+      const photoId = crypto.randomUUID()
       const ext = input.contentType === 'image/webp' ? 'webp' : 'jpg'
       const subfolder = input.kind === 'thumbnail' ? 'thumb' : 'orig'
       // Per-user namespacing makes audit logs and lifecycle rules easier

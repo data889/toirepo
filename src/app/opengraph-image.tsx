@@ -5,7 +5,7 @@ import { ImageResponse } from 'next/og'
 // only — no per-locale copy because this image is served for the
 // root (locale-agnostic) URL too.
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 export const alt = 'toirepo'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
