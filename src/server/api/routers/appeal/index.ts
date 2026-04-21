@@ -14,12 +14,15 @@ import { moderateAppeal } from '@/server/anthropic/moderation'
 const ProposedChangesSchema = z
   .object({
     // Allowlist of editable fields. Keep narrow — wider surface =
-    // wider attack surface. Free-form `hours` string (parsed later).
+    // wider attack surface. `hours` removed in M7 P1.5 hotfix because
+    // the Toilet model has no hours column yet — accepting it created
+    // a "false success" UX where users thought their edit landed but
+    // resolveAppeal silently dropped it. See M8+ TODO in
+    // KNOWN_ISSUES.md to reintroduce when Toilet.hours lands.
     name: z.string().min(1).max(200).optional(),
     address: z.string().min(1).max(500).optional(),
     type: z.enum(['PUBLIC', 'MALL', 'KONBINI', 'PURCHASE']).optional(),
     floor: z.string().max(50).optional(),
-    hours: z.string().max(200).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
     message: 'proposedChanges must include at least one field',
@@ -143,14 +146,7 @@ export const appealRouter = createTRPCRouter({
               addressJson['zh-CN'] === pc.address))
         const typeUnchanged = pc.type === undefined || pc.type === target.type
         const floorUnchanged = pc.floor === undefined || pc.floor === target.floor
-        const hoursUnchanged = pc.hours === undefined // hours not on Toilet yet
-        if (
-          nameUnchanged &&
-          addressUnchanged &&
-          typeUnchanged &&
-          floorUnchanged &&
-          hoursUnchanged
-        ) {
+        if (nameUnchanged && addressUnchanged && typeUnchanged && floorUnchanged) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: 'appeal.noChangeDetected',

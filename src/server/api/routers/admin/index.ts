@@ -333,9 +333,10 @@ export const adminRouter = createTRPCRouter({
               patch.type = pc.type as 'PUBLIC' | 'MALL' | 'KONBINI' | 'PURCHASE'
             }
             if (typeof pc.floor === 'string') patch.floor = pc.floor
-            // hours field not yet on Toilet schema — P1.5 parks it here
-            // so the UI can show "suggested hours" in the Appeal payload
-            // even before we add a real column (M8+).
+            // M7 P1.5 hotfix: hours field removed entirely from
+            // ProposedChangesSchema. When Toilet gains an hours column
+            // (M8+), reintroduce both the zod field and a patch line
+            // here. See M8+ TODO in KNOWN_ISSUES.md.
 
             await tx.toilet.update({
               where: { id: appeal.targetToiletId },

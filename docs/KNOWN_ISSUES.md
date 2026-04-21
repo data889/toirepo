@@ -30,22 +30,27 @@ migration 都先 `migrate diff` → 人工 review → 不用 `migrate dev`。
 ### `proposedChanges` 字段没有 DB 级白名单
 
 **背景**：Appeal.proposedChanges 是 JSONB。zod 层的 ProposedChangesSchema
-允许 name / address / type / floor / hours；但 DB 只检查 `IS NOT NULL`。
+允许 name / address / type / floor；但 DB 只检查 `IS NOT NULL`。
 **风险**：若未来绕过 tRPC 直接写 DB，可以写入任意字段。`admin.resolveAppeal`
 的 SUGGEST_EDIT 分支只按白名单字段 patch Toilet，非白名单字段静默忽略 —
 所以风险收敛但不为零。
 **修复方向**：加 PostgreSQL `jsonb_path_match` CHECK 或 JSON schema
 extension，MVP 阶段不做。
 
-### SUGGEST_EDIT `hours` 字段是"软落地"
+### M8+ TODO · 重新接入 SUGGEST_EDIT 的 hours 字段
 
-**背景**：ProposedChangesSchema 接受 `hours`，但 Toilet 模型目前**没有**
-`hours` 列。`admin.resolveAppeal` UPHELD 时 hours 部分被忽略（代码里
-`// hours field not yet on Toilet schema` 注释）。
-**现状**：用户可以提交 hours 改动建议，admin 看到 proposedChanges 里
-有这项，但 UPHELD 不会落到任何列。
-**修复时机**：M8 DeepL 翻译 / 未来营业时间特性时给 Toilet 加 hours Json
-列（多语言 + 结构化），再回来给 resolveAppeal 打通。
+**背景**：M7 P1.5 hotfix 把 `hours` 从 ProposedChangesSchema 移除（之前
+是"软落地"——zod 接受但 admin.resolveAppeal 静默忽略，导致用户感觉编辑
+成功而实际没落库的"假成功"体验）。
+**未来步骤**（M8+ Toilet 加 hours Json 列时）：
+1. `prisma/schema.prisma` 给 Toilet 加 `hours Json?`（多语言 + 结构化营业时间，参考 OSM `opening_hours` tag 格式）
+2. `src/server/api/routers/appeal/index.ts` ProposedChangesSchema 重新加
+   `hours: z.string().max(200).optional()`（或更结构化的 schema）
+3. `src/server/api/routers/admin/index.ts` SUGGEST_EDIT UPHELD 分支加
+   `if (typeof pc.hours === 'string') patch.hours = ...` 真正落库
+4. M7 P2 SUGGEST_EDIT UI 重新启用 hours 输入控件
+**记录原因**：避免重新踩坑——`hours` 不能再次以"软落地"姿态被加回 zod
+schema，必须配套 Toilet.hours 列 + UPHELD 副作用 + UI 三件套同时上。
 
 ### `admin.listAppeals` 无 photo 缩略图签名
 
