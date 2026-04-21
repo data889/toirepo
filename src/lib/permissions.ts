@@ -104,20 +104,65 @@ export async function canReviewToilet(
   return { ok: true }
 }
 
-// M7 P1: Appeal gate. L2 (trustLevel ≥ 2) required, mirroring the
-// "must have demonstrated good standing before flagging others' data"
-// decision. Ban / email-verify checks ride along so an undisabled
-// banned user can't open appeals.
-export function canAppeal(user: AuthUser | null | undefined): PermissionResult {
+// M7 P1.5: Appeal gate per AppealType.
+//   Own-data operations (OWN_SUBMISSION_REJECT / SELF_SOFT_DELETE) and
+//   low-stakes observations (REPORT_CLOSED / REPORT_NO_TOILET) require L1.
+//   Operations that mutate someone else's approved data
+//   (REPORT_DATA_ERROR / SUGGEST_EDIT) require L2.
+//
+// No admin-only appeal types today; admins act via admin.resolveAppeal.
+export type AppealTypeGated =
+  | 'OWN_SUBMISSION_REJECT'
+  | 'REPORT_DATA_ERROR'
+  | 'SUGGEST_EDIT'
+  | 'REPORT_CLOSED'
+  | 'REPORT_NO_TOILET'
+  | 'SELF_SOFT_DELETE'
+
+const APPEAL_TYPE_MIN_TRUST: Record<AppealTypeGated, number> = {
+  OWN_SUBMISSION_REJECT: 1,
+  SELF_SOFT_DELETE: 1,
+  REPORT_CLOSED: 1,
+  REPORT_NO_TOILET: 1,
+  REPORT_DATA_ERROR: 2,
+  SUGGEST_EDIT: 2,
+}
+
+export function canAppeal(
+  user: AuthUser | null | undefined,
+  type: AppealTypeGated,
+): PermissionResult {
   if (!user) return { ok: false, reason: 'permission.mustLogin' }
   if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
   if (!user.emailVerified) {
     return { ok: false, reason: 'permission.needsEmailVerification' }
   }
-  if (user.trustLevel < 2) {
+  if (user.trustLevel < APPEAL_TYPE_MIN_TRUST[type]) {
     return { ok: false, reason: 'permission.trustLevelTooLow' }
   }
   return { ok: true }
+}
+
+// M7 P1.5: Helper used by appeal.create's SELF_SOFT_DELETE branch. Keeps
+// the "is this my toilet?" ownership check out of the procedure body.
+export function canSoftDeleteOwnToilet(
+  user: AuthUser | null | undefined,
+  toilet: { submittedById: string | null },
+): PermissionResult {
+  if (!user) return { ok: false, reason: 'permission.mustLogin' }
+  if (isBanned(user)) return { ok: false, reason: 'permission.accountBanned' }
+  if (toilet.submittedById !== user.id) {
+    return { ok: false, reason: 'permission.notYourSubmission' }
+  }
+  return { ok: true }
+}
+
+// M7 P1.5: Thin alias for SUGGEST_EDIT eligibility. Kept as a separate
+// function so call sites read "this is an edit permission check",
+// making future rules (e.g. no editing within 7 days of submission) a
+// single-place change.
+export function canSuggestEdit(user: AuthUser | null | undefined): PermissionResult {
+  return canAppeal(user, 'SUGGEST_EDIT')
 }
 
 // -----------------------------------------------------------

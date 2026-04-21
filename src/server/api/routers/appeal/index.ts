@@ -1,67 +1,165 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { createTRPCRouter, protectedProcedure, adminProcedure, withUserRateLimit } from '../../trpc'
-import { canAppeal } from '@/lib/permissions'
+import { createTRPCRouter, protectedProcedure, withUserRateLimit } from '../../trpc'
+import { canAppeal, canSoftDeleteOwnToilet } from '@/lib/permissions'
+import { moderateAppeal } from '@/server/anthropic/moderation'
 
-// Appeals (M7 P1).
-//   OWN_SUBMISSION_REJECT — my submission got rejected, please reconsider.
-//   BAD_APPROVED_DATA     — this approved entry is wrong, please remove.
-// Both types target a Toilet row (REJECTED rows still live in Toilet).
-// Admin resolution (UPHELD) has a side effect: status flip on the
-// target toilet.
+// M7 P1.5: appeal.create is the single entry point for every
+// user-initiated change request against existing data. Admin-side
+// triage + resolve moved into `admin.listAppeals` / `admin.resolveAppeal`
+// so the API shape parallels M6's admin.listQueue / admin.review.
 
-const CreateInputSchema = z.object({
-  type: z.enum(['OWN_SUBMISSION_REJECT', 'BAD_APPROVED_DATA']),
-  targetToiletId: z.string().min(1),
-  reason: z.string().min(20).max(2000),
-  evidence: z.array(z.string().min(1).max(300)).max(4).default([]),
-})
+// ---- Discriminated-union input ---------------------------------
 
-const ResolveInputSchema = z.object({
-  appealId: z.string().min(1),
-  decision: z.enum(['UPHELD', 'DISMISSED']),
-  note: z.string().max(2000).optional(),
-})
+const ProposedChangesSchema = z
+  .object({
+    // Allowlist of editable fields. Keep narrow — wider surface =
+    // wider attack surface. Free-form `hours` string (parsed later).
+    name: z.string().min(1).max(200).optional(),
+    address: z.string().min(1).max(500).optional(),
+    type: z.enum(['PUBLIC', 'MALL', 'KONBINI', 'PURCHASE']).optional(),
+    floor: z.string().max(50).optional(),
+    hours: z.string().max(200).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, {
+    message: 'proposedChanges must include at least one field',
+  })
 
-const ListPendingInputSchema = z.object({
-  limit: z.number().int().min(1).max(50).default(20),
-  cursor: z.string().optional(),
-})
+const EvidenceSchema = z.array(z.string().min(1).max(300)).max(5).default([])
+
+const CreateAppealInput = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('OWN_SUBMISSION_REJECT'),
+    targetToiletId: z.string().min(1),
+    reason: z.string().min(20).max(2000),
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    type: z.literal('REPORT_DATA_ERROR'),
+    targetToiletId: z.string().min(1),
+    reason: z.string().min(20).max(2000),
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    type: z.literal('SUGGEST_EDIT'),
+    targetToiletId: z.string().min(1),
+    reason: z.string().min(10).max(2000),
+    proposedChanges: ProposedChangesSchema,
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    type: z.literal('REPORT_CLOSED'),
+    targetToiletId: z.string().min(1),
+    reason: z.string().min(10).max(2000),
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    type: z.literal('REPORT_NO_TOILET'),
+    targetToiletId: z.string().min(1),
+    reason: z.string().min(10).max(2000),
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    type: z.literal('SELF_SOFT_DELETE'),
+    targetToiletId: z.string().min(1),
+    reason: z.string().min(10).max(500),
+  }),
+])
 
 export const appealRouter = createTRPCRouter({
   create: withUserRateLimit('appeal:create')
-    .input(CreateInputSchema)
+    .input(CreateAppealInput)
     .mutation(async ({ ctx, input }) => {
-      const perm = canAppeal(ctx.user)
+      const perm = canAppeal(ctx.user, input.type)
       if (!perm.ok) {
         throw new TRPCError({ code: 'FORBIDDEN', message: perm.reason })
       }
 
-      // Target must exist; OWN_SUBMISSION_REJECT additionally requires the
-      // submitter to be the caller (you can't appeal someone else's reject).
       const target = await ctx.db.toilet.findUnique({
         where: { id: input.targetToiletId },
-        select: { id: true, status: true, submittedById: true },
+        select: {
+          id: true,
+          status: true,
+          submittedById: true,
+          name: true,
+          address: true,
+          type: true,
+          floor: true,
+        },
       })
       if (!target) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'appeal.targetNotFound' })
       }
 
-      if (input.type === 'OWN_SUBMISSION_REJECT') {
-        if (target.submittedById !== ctx.user.id) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'appeal.notYourSubmission' })
+      // Per-type business validation.
+      switch (input.type) {
+        case 'OWN_SUBMISSION_REJECT': {
+          if (target.submittedById !== ctx.user.id) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'appeal.notYourSubmission' })
+          }
+          if (target.status !== 'REJECTED') {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.targetNotRejected' })
+          }
+          break
         }
-        if (target.status !== 'REJECTED') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.targetNotRejected' })
+        case 'SELF_SOFT_DELETE': {
+          const ownPerm = canSoftDeleteOwnToilet(ctx.user, {
+            submittedById: target.submittedById,
+          })
+          if (!ownPerm.ok) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: ownPerm.reason })
+          }
+          if (target.status === 'REJECTED' || target.status === 'HIDDEN') {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.alreadyHidden' })
+          }
+          break
         }
-      } else {
-        // BAD_APPROVED_DATA
-        if (target.status !== 'APPROVED') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.targetNotApproved' })
+        case 'REPORT_DATA_ERROR':
+        case 'REPORT_CLOSED':
+        case 'REPORT_NO_TOILET':
+        case 'SUGGEST_EDIT': {
+          if (target.status !== 'APPROVED') {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.targetNotApproved' })
+          }
+          break
         }
       }
 
-      // One pending appeal per (user, target) at a time.
+      // SUGGEST_EDIT: reject if every proposed value already matches the
+      // current Toilet row (nothing to change).
+      if (input.type === 'SUGGEST_EDIT') {
+        const pc = input.proposedChanges
+        const nameJson = target.name as Record<string, unknown> | null
+        const addressJson = target.address as Record<string, unknown> | null
+        const nameUnchanged =
+          pc.name === undefined ||
+          (nameJson &&
+            (nameJson.en === pc.name || nameJson.ja === pc.name || nameJson['zh-CN'] === pc.name))
+        const addressUnchanged =
+          pc.address === undefined ||
+          (addressJson &&
+            (addressJson.en === pc.address ||
+              addressJson.ja === pc.address ||
+              addressJson['zh-CN'] === pc.address))
+        const typeUnchanged = pc.type === undefined || pc.type === target.type
+        const floorUnchanged = pc.floor === undefined || pc.floor === target.floor
+        const hoursUnchanged = pc.hours === undefined // hours not on Toilet yet
+        if (
+          nameUnchanged &&
+          addressUnchanged &&
+          typeUnchanged &&
+          floorUnchanged &&
+          hoursUnchanged
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'appeal.noChangeDetected',
+          })
+        }
+      }
+
+      // Duplicate PENDING per (user, target) — irrespective of type,
+      // consistent with P1 rule.
       const existingPending = await ctx.db.appeal.count({
         where: {
           userId: ctx.user.id,
@@ -79,14 +177,30 @@ export const appealRouter = createTRPCRouter({
           type: input.type,
           targetToiletId: input.targetToiletId,
           reason: input.reason,
-          evidence: input.evidence,
+          evidence: 'evidence' in input ? (input.evidence ?? []) : [],
+          proposedChanges: input.type === 'SUGGEST_EDIT' ? input.proposedChanges : undefined,
           status: 'PENDING',
         },
       })
 
-      // Placeholder admin notification; M7 P3 replaces with real channel.
-      console.log(`[appeal] ${input.type} #${appeal.id} by ${ctx.user.id} → admin queue`)
+      // Haiku pre-screen (non-blocking — failure leaves aiDecision null).
+      try {
+        const mod = await moderateAppeal(appeal.id)
+        await ctx.db.appeal.update({
+          where: { id: appeal.id },
+          data: {
+            aiDecision: mod.result.decision,
+            aiConfidence: mod.result.confidence,
+            aiReasons: mod.result.reasons,
+            aiRawText: mod.rawText,
+            aiModeratedAt: new Date(),
+          },
+        })
+      } catch (e) {
+        console.error(`[AI appeal moderation failed for appeal ${appeal.id}]`, e)
+      }
 
+      console.log(`[appeal] ${input.type} #${appeal.id} by ${ctx.user.id} → admin queue`)
       return { id: appeal.id, status: appeal.status }
     }),
 
@@ -99,96 +213,16 @@ export const appealRouter = createTRPCRouter({
         targetToiletId: true,
         reason: true,
         evidence: true,
+        proposedChanges: true,
         status: true,
         resolutionNote: true,
         resolvedAt: true,
+        aiDecision: true,
+        aiConfidence: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
     })
-  }),
-
-  listPending: adminProcedure.input(ListPendingInputSchema).query(async ({ ctx, input }) => {
-    const rows = await ctx.db.appeal.findMany({
-      where: { status: 'PENDING' },
-      select: {
-        id: true,
-        type: true,
-        reason: true,
-        evidence: true,
-        createdAt: true,
-        user: { select: { id: true, email: true, name: true, trustLevel: true } },
-        targetToilet: {
-          select: {
-            id: true,
-            slug: true,
-            status: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-      take: input.limit + 1,
-      cursor: input.cursor ? { id: input.cursor } : undefined,
-      skip: input.cursor ? 1 : 0,
-    })
-    let nextCursor: string | undefined
-    if (rows.length > input.limit) {
-      const next = rows.pop()
-      nextCursor = next?.id
-    }
-    return { appeals: rows, nextCursor }
-  }),
-
-  /**
-   * Admin decision. Side effects:
-   *   UPHELD + OWN_SUBMISSION_REJECT → Toilet.status REJECTED → APPROVED
-   *   UPHELD + BAD_APPROVED_DATA    → Toilet.status APPROVED → REJECTED
-   *   DISMISSED → no target state change
-   */
-  resolve: adminProcedure.input(ResolveInputSchema).mutation(async ({ ctx, input }) => {
-    const appeal = await ctx.db.appeal.findUnique({
-      where: { id: input.appealId },
-      select: {
-        id: true,
-        type: true,
-        status: true,
-        targetToiletId: true,
-      },
-    })
-    if (!appeal) throw new TRPCError({ code: 'NOT_FOUND' })
-    if (appeal.status !== 'PENDING') {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'appeal.alreadyResolved' })
-    }
-
-    await ctx.db.$transaction(async (tx) => {
-      await tx.appeal.update({
-        where: { id: appeal.id },
-        data: {
-          status: input.decision,
-          resolutionNote: input.note ?? null,
-          resolvedById: ctx.user.id,
-          resolvedAt: new Date(),
-        },
-      })
-
-      if (input.decision === 'UPHELD' && appeal.targetToiletId) {
-        const targetStatus: 'APPROVED' | 'REJECTED' =
-          appeal.type === 'OWN_SUBMISSION_REJECT' ? 'APPROVED' : 'REJECTED'
-        await tx.toilet.update({
-          where: { id: appeal.targetToiletId },
-          data: {
-            status: targetStatus,
-            ...(targetStatus === 'APPROVED' ? { publishedAt: new Date() } : {}),
-          },
-        })
-      }
-    })
-
-    return { id: appeal.id, status: input.decision }
   }),
 })
