@@ -146,10 +146,16 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           'bottom-right',
         )
 
+        // M10 P2: trackUserLocation=true keeps the camera re-centered
+        // on the user as they move. Upstream maplibre-gl 5.x does NOT
+        // expose `showUserHeading` (a Mapbox GL-only option) — the
+        // user-location indicator renders as a plain dot, not an
+        // orientation arrow. Custom DeviceOrientation-driven arrow
+        // is tracked in KNOWN_ISSUES as an M12 polish.
         map.addControl(
           new maplibregl.GeolocateControl({
             positionOptions: { enableHighAccuracy: true },
-            trackUserLocation: false,
+            trackUserLocation: true,
             showUserLocation: true,
             showAccuracyCircle: false,
           }),
