@@ -128,7 +128,7 @@
       "submit": "申し立てを送信",
       "submitting": "送信中…",
       "reasonLabel": "申し立て理由",
-      "reasonCharCount": "{current} / {max}（{min} 字以上）",
+      "reasonCharCount": "{current} / {max}",
       "evidenceLabel": "証拠写真（任意）",
       "addPhoto": "追加",
       "removePhoto": "削除",

@@ -59,42 +59,42 @@ const OPTIONS: AppealOption[] = [
     minTrust: 0,
     ownershipRequired: false,
     requiredStatus: 'APPROVED',
-    minReason: 10,
+    minReason: 1,
   },
   {
     type: 'REPORT_CLOSED',
     minTrust: 0,
     ownershipRequired: false,
     requiredStatus: 'APPROVED',
-    minReason: 10,
+    minReason: 1,
   },
   {
     type: 'SUGGEST_EDIT',
     minTrust: 2,
     ownershipRequired: false,
     requiredStatus: 'APPROVED',
-    minReason: 10,
+    minReason: 1,
   },
   {
     type: 'REPORT_DATA_ERROR',
     minTrust: 2,
     ownershipRequired: false,
     requiredStatus: 'APPROVED',
-    minReason: 20,
+    minReason: 1,
   },
   {
     type: 'OWN_SUBMISSION_REJECT',
     minTrust: 1,
     ownershipRequired: true,
     requiredStatus: 'REJECTED',
-    minReason: 20,
+    minReason: 1,
   },
   {
     type: 'SELF_SOFT_DELETE',
     minTrust: 1,
     ownershipRequired: true,
     requiredStatus: 'APPROVED',
-    minReason: 10,
+    minReason: 1,
   },
 ]
 
@@ -460,7 +460,7 @@ export function AppealDialog({ open, onClose, toilet, initialType }: AppealDialo
             rows={4}
           />
           <p className="text-ink-tertiary text-right text-xs">
-            {t('reasonCharCount', { current: reason.length, min: opt.minReason, max: MAX_REASON })}
+            {t('reasonCharCount', { current: reason.length, max: MAX_REASON })}
           </p>
         </div>
 

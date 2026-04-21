@@ -30,42 +30,47 @@ const ProposedChangesSchema = z
 
 const EvidenceSchema = z.array(z.string().min(1).max(300)).max(5).default([])
 
+// M10 P2: reason min lowered from 10/20 → 1 across all 6 types.
+// Per-type verbosity gates drove users to invent filler text ("a" × 10)
+// that added no information. The evidence photo + AppealType already
+// carry the signal; Haiku + admin still gate UPHELD. Kept max bounds
+// unchanged (2000 / 500) as hard anti-spam backstops.
 const CreateAppealInput = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('OWN_SUBMISSION_REJECT'),
     targetToiletId: z.string().min(1),
-    reason: z.string().min(20).max(2000),
+    reason: z.string().min(1).max(2000),
     evidence: EvidenceSchema,
   }),
   z.object({
     type: z.literal('REPORT_DATA_ERROR'),
     targetToiletId: z.string().min(1),
-    reason: z.string().min(20).max(2000),
+    reason: z.string().min(1).max(2000),
     evidence: EvidenceSchema,
   }),
   z.object({
     type: z.literal('SUGGEST_EDIT'),
     targetToiletId: z.string().min(1),
-    reason: z.string().min(10).max(2000),
+    reason: z.string().min(1).max(2000),
     proposedChanges: ProposedChangesSchema,
     evidence: EvidenceSchema,
   }),
   z.object({
     type: z.literal('REPORT_CLOSED'),
     targetToiletId: z.string().min(1),
-    reason: z.string().min(10).max(2000),
+    reason: z.string().min(1).max(2000),
     evidence: EvidenceSchema,
   }),
   z.object({
     type: z.literal('REPORT_NO_TOILET'),
     targetToiletId: z.string().min(1),
-    reason: z.string().min(10).max(2000),
+    reason: z.string().min(1).max(2000),
     evidence: EvidenceSchema,
   }),
   z.object({
     type: z.literal('SELF_SOFT_DELETE'),
     targetToiletId: z.string().min(1),
-    reason: z.string().min(10).max(500),
+    reason: z.string().min(1).max(500),
   }),
 ])
 

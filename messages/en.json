@@ -128,7 +128,7 @@
       "submit": "Submit appeal",
       "submitting": "Submitting…",
       "reasonLabel": "Reason",
-      "reasonCharCount": "{current} / {max} (min {min})",
+      "reasonCharCount": "{current} / {max}",
       "evidenceLabel": "Evidence photos (optional)",
       "addPhoto": "Add",
       "removePhoto": "Remove",

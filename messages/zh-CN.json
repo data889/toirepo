@@ -128,7 +128,7 @@
       "submit": "提交申诉",
       "submitting": "提交中…",
       "reasonLabel": "申诉理由",
-      "reasonCharCount": "{current} / {max}（最少 {min} 字）",
+      "reasonCharCount": "{current} / {max}",
       "evidenceLabel": "证据照片（可选）",
       "addPhoto": "添加",
       "removePhoto": "移除",
