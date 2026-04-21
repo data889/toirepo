@@ -113,6 +113,70 @@
     "trust": {
       "verified": "Verified",
       "senior": "Senior"
+    },
+    "appeal": {
+      "step1Title": "What's the issue?",
+      "step2Title": "Appeal details",
+      "moderationNote": "An admin reviews appeals (1-3 days).",
+      "next": "Next",
+      "back": "Back",
+      "cancel": "Cancel",
+      "submit": "Submit appeal",
+      "submitting": "Submitting…",
+      "reasonLabel": "Reason",
+      "reasonCharCount": "{current} / {max} (min {min})",
+      "evidenceLabel": "Evidence photos (optional)",
+      "addPhoto": "Add",
+      "removePhoto": "Remove",
+      "editHint": "Only fill fields you want to change. Unchanged values are ignored.",
+      "editNameLabel": "New name",
+      "editAddressLabel": "New address",
+      "editTypeLabel": "Type",
+      "editFloorLabel": "Floor",
+      "requireLogin": "Sign in to submit an appeal.",
+      "signinCta": "Sign in",
+      "emptyL0": "Submit one approved toilet to unlock appeals.",
+      "goSubmit": "Submit a toilet",
+      "toastSuccess": "Appeal submitted, awaiting admin review",
+      "errorReasonTooShort": "Reason must be at least {min} characters",
+      "errorNoChange": "Change at least one field",
+      "errorUnauthorized": "Please sign in",
+      "errorForbidden": "Trust level too low or not allowed",
+      "errorDuplicate": "You already have a pending appeal for this toilet",
+      "errorTooFrequent": "Too many appeals — try again tomorrow",
+      "errorGeneric": "Submission failed, please retry",
+      "type": {
+        "REPORT_NO_TOILET": {
+          "label": "No toilet here / non-customers refused",
+          "description": "I went and there's no usable toilet for outsiders",
+          "reasonPlaceholder": "e.g. Visited and found no public toilet, or staff said customers only."
+        },
+        "REPORT_CLOSED": {
+          "label": "Toilet/venue is closed",
+          "description": "The building or business is permanently closed",
+          "reasonPlaceholder": "e.g. Closure notice on the door."
+        },
+        "SUGGEST_EDIT": {
+          "label": "Suggest an edit",
+          "description": "Name / address / type / floor needs correcting",
+          "reasonPlaceholder": "e.g. The store renamed to XX, the listing has the old name."
+        },
+        "REPORT_DATA_ERROR": {
+          "label": "Other data error",
+          "description": "Something else is wrong with this listing",
+          "reasonPlaceholder": "Describe what's wrong in detail."
+        },
+        "OWN_SUBMISSION_REJECT": {
+          "label": "Appeal my rejected submission",
+          "description": "My submission was rejected and I want it reviewed again",
+          "reasonPlaceholder": "Explain why this should be approved."
+        },
+        "SELF_SOFT_DELETE": {
+          "label": "Withdraw my own submission",
+          "description": "Take a toilet I submitted off the map",
+          "reasonPlaceholder": "Reason for withdrawal (incorrect info / privacy / other)."
+        }
+      }
     }
   },
   "submit": {

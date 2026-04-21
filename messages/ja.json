@@ -113,6 +113,70 @@
     "trust": {
       "verified": "認証済み",
       "senior": "上級"
+    },
+    "appeal": {
+      "step1Title": "問題の種類を選択",
+      "step2Title": "申し立ての内容",
+      "moderationNote": "申し立ては管理者が確認します（1〜3 日）。",
+      "next": "次へ",
+      "back": "戻る",
+      "cancel": "キャンセル",
+      "submit": "申し立てを送信",
+      "submitting": "送信中…",
+      "reasonLabel": "申し立て理由",
+      "reasonCharCount": "{current} / {max}（{min} 字以上）",
+      "evidenceLabel": "証拠写真（任意）",
+      "addPhoto": "追加",
+      "removePhoto": "削除",
+      "editHint": "変更したい項目だけ入力してください。同じ値は無視されます。",
+      "editNameLabel": "新しい名称",
+      "editAddressLabel": "新しい住所",
+      "editTypeLabel": "種類",
+      "editFloorLabel": "階",
+      "requireLogin": "申し立てにはログインが必要です。",
+      "signinCta": "ログインへ",
+      "emptyL0": "承認済みのトイレ投稿が 1 件あれば申し立てができます。",
+      "goSubmit": "トイレを投稿する",
+      "toastSuccess": "申し立てを送信しました（審査中）",
+      "errorReasonTooShort": "申し立て理由は {min} 字以上必要です",
+      "errorNoChange": "1 つ以上の項目を変更してください",
+      "errorUnauthorized": "ログインが必要です",
+      "errorForbidden": "信頼レベルが不足しているか、権限がありません",
+      "errorDuplicate": "このトイレへの審査中の申し立てが既にあります",
+      "errorTooFrequent": "申し立てが多すぎます。明日再試行してください",
+      "errorGeneric": "送信に失敗しました。再試行してください",
+      "type": {
+        "REPORT_NO_TOILET": {
+          "label": "この店にトイレがない / 客以外お断り",
+          "description": "実際に行ってみたらトイレがない、または客以外利用不可",
+          "reasonPlaceholder": "例：行ってみたら公衆トイレがなかった、または店員から客のみと言われた。"
+        },
+        "REPORT_CLOSED": {
+          "label": "このトイレ・店舗は閉店",
+          "description": "建物・店舗が完全に閉店した",
+          "reasonPlaceholder": "例：閉店の貼り紙あり。"
+        },
+        "SUGGEST_EDIT": {
+          "label": "情報の修正を提案",
+          "description": "名称 / 住所 / 種類 / 階 に誤りがある",
+          "reasonPlaceholder": "例：店名が XX に変わった。"
+        },
+        "REPORT_DATA_ERROR": {
+          "label": "その他のデータ誤り",
+          "description": "上記 3 項目以外の問題",
+          "reasonPlaceholder": "詳しく説明してください。"
+        },
+        "OWN_SUBMISSION_REJECT": {
+          "label": "自分の却下された投稿を再審査",
+          "description": "自分の投稿が却下されたが、再審査を希望",
+          "reasonPlaceholder": "なぜ承認されるべきか説明してください。"
+        },
+        "SELF_SOFT_DELETE": {
+          "label": "自分の投稿を取り下げ",
+          "description": "自分が投稿したトイレを地図から削除したい",
+          "reasonPlaceholder": "取り下げ理由を書いてください（情報誤り / プライバシー / その他）。"
+        }
+      }
     }
   },
   "submit": {

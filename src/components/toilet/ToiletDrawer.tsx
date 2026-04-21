@@ -17,6 +17,7 @@ import { api } from '@/lib/trpc/client'
 import { Link } from '@/i18n/navigation'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
 import { cn } from '@/lib/utils'
+import { AppealDialog } from './AppealDialog'
 import { ConfirmationCounter } from './ConfirmationCounter'
 import { PhotoGallery } from './PhotoGallery'
 import { RatingSummary } from './RatingSummary'
@@ -95,6 +96,7 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
   )
 
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
+  const [appealDialogOpen, setAppealDialogOpen] = useState(false)
 
   const isMobile = useIsMobile()
   const side = isMobile ? 'bottom' : 'right'
@@ -185,12 +187,7 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
                 <Button variant="default" size="sm" onClick={() => setReviewFormOpen(true)}>
                   {tReview('writeReview')}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  // P2.2 will open the appeal type chooser here.
-                  onClick={() => alert('M7 P2.2 — appeal.create 实装中')}
-                >
+                <Button variant="outline" size="sm" onClick={() => setAppealDialogOpen(true)}>
                   {tReview('reportIssue')}
                 </Button>
                 <Link
@@ -217,6 +214,21 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
               ? { rating: myReview.rating, body: myReview.body, photoKeys: myReview.photoKeys }
               : undefined
           }
+        />
+      )}
+      {toilet && appealDialogOpen && (
+        <AppealDialog
+          open={appealDialogOpen}
+          onClose={() => setAppealDialogOpen(false)}
+          toilet={{
+            id: toilet.id,
+            status: toilet.status,
+            submittedById: toilet.submittedById ?? null,
+            name: toilet.name,
+            address: toilet.address,
+            type: toilet.type,
+            floor: toilet.floor ?? null,
+          }}
         />
       )}
     </Sheet>
