@@ -86,6 +86,7 @@
       "totalCount": "{count} 条评价",
       "writeReview": "写评论",
       "reportIssue": "报告问题",
+      "navigate": "导航到这里",
       "noRatings": "还没有评分",
       "form": {
         "title": "写评论",

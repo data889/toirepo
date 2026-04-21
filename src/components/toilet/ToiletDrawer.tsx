@@ -15,8 +15,10 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/trpc/client'
+import { Navigation } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
+import { buildDirectionsUrl, detectMapsProvider } from '@/lib/directions'
 import { cn } from '@/lib/utils'
 import { AppealDialog } from './AppealDialog'
 import { ConfirmationCounter } from './ConfirmationCounter'
@@ -197,7 +199,31 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
               <Separator />
 
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button variant="default" size="sm" onClick={() => setReviewFormOpen(true)}>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    // Derive provider at click time so we never touch
+                    // navigator during SSR / module evaluation.
+                    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+                    const url = buildDirectionsUrl(
+                      { latitude: toilet.latitude, longitude: toilet.longitude },
+                      detectMapsProvider(ua),
+                    )
+                    // iOS Safari handles maps:// via the OS; every
+                    // other browser opens the Google Maps web URL.
+                    // _blank keeps the map tab alive behind it.
+                    window.open(url, '_blank', 'noopener,noreferrer')
+                  }}
+                  style={{
+                    backgroundColor: 'var(--color-teal-blue, #4198AC)',
+                    color: '#FDFCF9',
+                  }}
+                >
+                  <Navigation className="mr-1 h-4 w-4" />
+                  {tReview('navigate')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setReviewFormOpen(true)}>
                   {tReview('writeReview')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setAppealDialogOpen(true)}>
