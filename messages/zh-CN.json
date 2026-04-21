@@ -76,6 +76,9 @@
       "errorTooFrequent": "确认太频繁，稍后再试",
       "errorGeneric": "操作失败，请重试"
     },
+    "submit": {
+      "newToilet": "新增厕所"
+    },
     "review": {
       "empty": "还没有评论",
       "loadMore": "加载更多",

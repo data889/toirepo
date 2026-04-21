@@ -76,6 +76,9 @@
       "errorTooFrequent": "確認の頻度が高すぎます。少し時間をおいて再試行してください",
       "errorGeneric": "操作に失敗しました。再試行してください"
     },
+    "submit": {
+      "newToilet": "トイレを追加"
+    },
     "review": {
       "empty": "まだレビューがありません",
       "loadMore": "もっと見る",

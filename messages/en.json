@@ -76,6 +76,9 @@
       "errorTooFrequent": "Too many confirmations — try again later",
       "errorGeneric": "Action failed, please retry"
     },
+    "submit": {
+      "newToilet": "Add Toilet"
+    },
     "review": {
       "empty": "No reviews yet",
       "loadMore": "Load more",
