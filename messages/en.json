@@ -250,6 +250,7 @@
       "delete": "Delete",
       "confirmDelete": "Delete this review?",
       "rejectReasonsHeader": "Rejection reasons:",
+      "adminNoteHeader": "Admin's note:",
       "toastDeleted": "Review deleted",
       "status": {
         "PENDING": "Pending",

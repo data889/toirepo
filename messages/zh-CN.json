@@ -250,6 +250,7 @@
       "delete": "删除",
       "confirmDelete": "确定删除这条评论？",
       "rejectReasonsHeader": "审核未通过的原因：",
+      "adminNoteHeader": "管理员拒绝说明：",
       "toastDeleted": "评论已删除",
       "status": {
         "PENDING": "审核中",

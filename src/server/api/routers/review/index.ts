@@ -141,6 +141,7 @@ export const reviewRouter = createTRPCRouter({
         photoKeys: true,
         status: true,
         aiReasons: true,
+        rejectionNote: true,
         createdAt: true,
         updatedAt: true,
         toilet: {

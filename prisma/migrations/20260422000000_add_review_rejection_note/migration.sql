@@ -1,0 +1,24 @@
+-- M10 P2 · add Review.rejectionNote column
+--
+-- Background: admin.resolveReview accepted a `note` input since M7 P2.3 but
+-- discarded it silently — the Review model had no column to hold it. This
+-- migration adds the missing column so admins can leave a rejection reason
+-- that shows up on the user's /me/reviews REJECTED rows.
+--
+-- Drift-circumvention path (5th time — see KNOWN_ISSUES M7 P1 + P1.5 +
+-- M6 P2 + M2 entries):
+--   1. This file contains the intended DDL (ALTER TABLE ADD COLUMN).
+--   2. Applied manually to local docker via
+--        docker exec toirepo_postgres psql -U toirepo -d toirepo -c '<sql>'
+--   3. Marked applied via
+--        pnpm prisma migrate resolve --applied 20260422000000_add_review_rejection_note
+--   4. prisma generate refreshes the TypeScript client.
+-- NEVER run `prisma migrate dev` — it would try to reset the 10k+ Toilet
+-- rows. Prod picks up this migration via `pnpm prod:migrate` (which runs
+-- `prisma migrate deploy`, fine with forward-only SQL files).
+--
+-- Column is nullable + text so it can hold multi-paragraph admin notes;
+-- max length enforced at the tRPC input layer (500 chars, matching
+-- admin.resolveReview's Zod schema).
+
+ALTER TABLE "Review" ADD COLUMN "rejectionNote" TEXT;

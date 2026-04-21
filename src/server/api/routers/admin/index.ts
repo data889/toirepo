@@ -209,10 +209,11 @@ export const adminRouter = createTRPCRouter({
    *  - HIDDEN   → admin-hidden without the trust counter penalty (use
    *               for borderline-but-not-malicious content)
    *
-   * `note` is accepted but not yet persisted on the Review row — Review
-   * has no rejectionNote column today (schema unchanged per CLAUDE.md).
-   * AuditLog wiring will pick it up in a later iteration; the input
-   * shape is there now so the UI can submit without churn later.
+   * `note` persisted on Review.rejectionNote since M10 P2 (was
+   * silently dropped before the drift-circumvention schema bump).
+   * Only written on the REJECTED path — APPROVED / HIDDEN clear
+   * the column so stale notes from earlier decisions don't leak
+   * through if the admin flips verdict.
    */
   resolveReview: adminProcedure
     .input(
@@ -231,7 +232,10 @@ export const adminRouter = createTRPCRouter({
 
       const updated = await ctx.db.review.update({
         where: { id: input.reviewId },
-        data: { status: input.decision },
+        data: {
+          status: input.decision,
+          rejectionNote: input.decision === 'REJECTED' ? (input.note ?? null) : null,
+        },
       })
 
       // Trust recalc only when this is a fresh transition AND the

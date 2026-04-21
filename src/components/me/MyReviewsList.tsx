@@ -109,18 +109,29 @@ export function MyReviewsList() {
               <p className="text-ink-primary mt-2 text-sm whitespace-pre-wrap">{rv.body}</p>
             )}
 
-            {/* AI reasons surface for REJECTED — admin reject note is not persisted */}
-            {rv.status === 'REJECTED' && aiReasons.length > 0 && (
+            {/* REJECTED: prefer the admin-written rejectionNote (M10 P2
+                addition) over AI reasons. Both only exist on REJECTED
+                rows — falls through silently on other statuses. */}
+            {rv.status === 'REJECTED' && (rv.rejectionNote || aiReasons.length > 0) && (
               <div
                 className="mt-3 rounded border border-[var(--color-accent-coral,#D4573A)] bg-[var(--color-accent-coral,#D4573A)]/10 p-2 text-xs"
                 role="alert"
               >
-                <p className="text-ink-primary mb-1 font-medium">{t('rejectReasonsHeader')}</p>
-                <ul className="text-ink-secondary list-disc space-y-0.5 pl-5">
-                  {aiReasons.map((reason, i) => (
-                    <li key={i}>{reason}</li>
-                  ))}
-                </ul>
+                {rv.rejectionNote ? (
+                  <>
+                    <p className="text-ink-primary mb-1 font-medium">{t('adminNoteHeader')}</p>
+                    <p className="text-ink-secondary whitespace-pre-wrap">{rv.rejectionNote}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-ink-primary mb-1 font-medium">{t('rejectReasonsHeader')}</p>
+                    <ul className="text-ink-secondary list-disc space-y-0.5 pl-5">
+                      {aiReasons.map((reason, i) => (
+                        <li key={i}>{reason}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             )}
 

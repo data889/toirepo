@@ -250,6 +250,7 @@
       "delete": "削除",
       "confirmDelete": "このレビューを削除しますか？",
       "rejectReasonsHeader": "却下理由：",
+      "adminNoteHeader": "管理者からの却下コメント：",
       "toastDeleted": "レビューを削除しました",
       "status": {
         "PENDING": "審査中",
