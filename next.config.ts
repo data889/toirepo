@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { withSentryConfig } from '@sentry/nextjs'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
@@ -70,4 +71,30 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+// M10 P2 · Sentry wrapper. Order matters: Sentry goes on the OUTSIDE
+// so it sees the final next-intl-wrapped config (source maps upload
+// needs to know the real build output paths). Build-only auth token
+// + org/project slugs come from env.
+const configWithIntl = withNextIntl(nextConfig)
+
+export default withSentryConfig(configWithIntl, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Silent unless there's actual source-maps work to report. Keeps
+  // Vercel build log from drowning in Sentry plugin chatter.
+  silent: true,
+  // Widen source-map coverage to include client-side chunks — default
+  // skips public assets but our map-interaction bundle lives there.
+  widenClientFileUpload: true,
+  // Don't bundle the runtime Sentry logger into the production
+  // client bundle — saves ~2KB and silences console.* noise.
+  disableLogger: true,
+  // Skip source-map upload entirely when the auth token is missing
+  // (local dev, PR without Sentry env). Runtime SDK still injects;
+  // events just won't have symbolicated stack traces for those
+  // builds, which is fine for CI / preview.
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+})
