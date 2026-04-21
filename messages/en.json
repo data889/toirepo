@@ -254,6 +254,44 @@
   },
   "admin": {
     "headerLink": "Admin",
+    "nav": {
+      "queue": "Toilet queue",
+      "reviews": "Review queue",
+      "appeals": "Appeals"
+    },
+    "reviews": {
+      "title": "Review moderation",
+      "loading": "Loading…",
+      "empty": "Queue is clear",
+      "emptyHint": "No pending reviews.",
+      "filter": "Filter",
+      "filterAll": "All",
+      "filterAiApproved": "AI approved",
+      "filterAiFlag": "AI needs human",
+      "filterAiReject": "AI rejected",
+      "filterNoModeration": "No AI review",
+      "totalItems": "{count} items",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "noAI": "No AI review",
+      "aiReasons": "AI reasons",
+      "untitledToilet": "(Untitled toilet)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "hide": "Hide",
+      "rejectDialogTitle": "Reject this review",
+      "rejectNoteLabel": "Reason (optional, for team record)",
+      "rejectNotePlaceholder": "e.g. Violates community guidelines / personal attack.",
+      "cancel": "Cancel",
+      "confirmReject": "Confirm reject",
+      "toastApproved": "Review approved",
+      "toastRejected": "Review rejected",
+      "toastHidden": "Review hidden",
+      "error": {
+        "UNAUTHORIZED": "Please sign in",
+        "FORBIDDEN": "You don't have permission",
+        "generic": "Action failed, please retry"
+      }
+    },
     "queue": {
       "title": "Moderation queue",
       "backToMap": "Back to map",

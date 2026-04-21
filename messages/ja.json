@@ -254,6 +254,44 @@
   },
   "admin": {
     "headerLink": "管理",
+    "nav": {
+      "queue": "トイレ審査",
+      "reviews": "レビュー審査",
+      "appeals": "申し立て"
+    },
+    "reviews": {
+      "title": "レビュー審査",
+      "loading": "読み込み中…",
+      "empty": "キューは空です",
+      "emptyHint": "審査待ちのレビューはありません。",
+      "filter": "絞り込み",
+      "filterAll": "すべて",
+      "filterAiApproved": "AI 承認",
+      "filterAiFlag": "AI 要再確認",
+      "filterAiReject": "AI 却下",
+      "filterNoModeration": "AI 未審査",
+      "totalItems": "{count} 件",
+      "aiLabel": "AI: {decision} ({percent}%)",
+      "noAI": "AI 未審査",
+      "aiReasons": "AI 判断理由",
+      "untitledToilet": "（無題のトイレ）",
+      "approve": "承認",
+      "reject": "却下",
+      "hide": "非表示",
+      "rejectDialogTitle": "このレビューを却下",
+      "rejectNoteLabel": "却下理由（任意・記録用）",
+      "rejectNotePlaceholder": "例：コミュニティ規約違反 / 人身攻撃を含む。",
+      "cancel": "キャンセル",
+      "confirmReject": "却下する",
+      "toastApproved": "レビューを承認しました",
+      "toastRejected": "レビューを却下しました",
+      "toastHidden": "レビューを非表示にしました",
+      "error": {
+        "UNAUTHORIZED": "ログインが必要です",
+        "FORBIDDEN": "この操作の権限がありません",
+        "generic": "操作に失敗しました。再試行してください"
+      }
+    },
     "queue": {
       "title": "審査キュー",
       "backToMap": "地図に戻る",
