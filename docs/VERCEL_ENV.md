@@ -36,7 +36,15 @@
 | `R2_BUCKET_NAME` | `toirepo-tiles` |
 | `R2_PHOTOS_BUCKET_NAME` | `toirepo-photos` |
 | `R2_PUBLIC_URL` | 例如 `https://photos.toirepo.com`（自定义 R2 公网 hostname）|
-| `NEXT_PUBLIC_R2_PUBLIC_URL` | 与 `R2_PUBLIC_URL` 相同值。**注意 NEXT_PUBLIC 前缀** |
+| `NEXT_PUBLIC_R2_PUBLIC_URL` | 与 `R2_PUBLIC_URL` 相同值。**注意 NEXT_PUBLIC 前缀**。MapTiler key 存在时仅作 fallback |
+
+### 1.3.1 MapTiler basemap（M10 P2 加入）
+
+| Variable | 值 |
+|---|---|
+| `NEXT_PUBLIC_MAPTILER_KEY` | MapTiler Cloud account (https://cloudflare.com/account) → API keys → 复制 default key。Free tier 每月 100k tile requests 够 MVP 流量。设置后地图 style 走 `api.maptiler.com/maps/basic-v2-light/style.json?key=…`（全球覆盖）；不设置则回退到 R2 自托管 tokyo.pmtiles（东京 only，MAX_BOUNDS 自动启用）|
+
+Prod / Preview 两侧都配同一 key 即可。Attribution 自动随 style 返回 "© MapTiler © OpenStreetMap contributors"，无需手工拼接。
 
 ### 1.4 AI / 翻译
 

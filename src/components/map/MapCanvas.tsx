@@ -18,11 +18,10 @@ import { api } from '@/lib/trpc/client'
 const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812]
 const DEFAULT_ZOOM = 14
 
-// M10 P2 hotfix: MAX_BOUNDS restored. The Protomaps public global URL
-// we briefly switched to returned 404 on verify; rolled back to
-// self-hosted tokyo.pmtiles which only has Kanto tiles. Without the
-// bound, pan-out goes to a blank canvas. Global coverage → M12.
-const MAX_BOUNDS: [[number, number], [number, number]] = [
+// Applied only when falling back to self-hosted R2 tokyo.pmtiles
+// (Kanto bbox only — no tiles outside). MapTiler path skips this:
+// global coverage, user pans to Beijing / NYC / London freely.
+const R2_FALLBACK_MAX_BOUNDS: [[number, number], [number, number]] = [
   [138.9, 35.3],
   [140.2, 35.95],
 ]
@@ -115,7 +114,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
     const init = async () => {
       try {
-        const style = await loadToirepoStyle()
+        const { style, source } = await loadToirepoStyle()
         if (cancelled) return
 
         const map = new maplibregl.Map({
@@ -123,22 +122,22 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           style,
           center: DEFAULT_CENTER,
           zoom: DEFAULT_ZOOM,
-          maxBounds: MAX_BOUNDS,
+          // Bound the camera only when we're on the Tokyo-only R2
+          // fallback; MapTiler has global coverage so the user can
+          // pan to any city.
+          ...(source === 'r2' ? { maxBounds: R2_FALLBACK_MAX_BOUNDS } : {}),
           attributionControl: false,
           dragRotate: false,
           touchPitch: false,
         })
 
-        map.addControl(
-          new maplibregl.AttributionControl({
-            compact: true,
-            customAttribution: [
-              '<a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>',
-              '<a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a>',
-            ],
-          }),
-          'bottom-right',
-        )
+        // Attribution is read by MapLibre from the style's
+        // sources.*.attribution fields — both MapTiler's style.json
+        // (returns "© MapTiler © OpenStreetMap contributors") and our
+        // own toirepo-paper.json (Protomaps + OSM) already carry the
+        // right text, so AttributionControl needs no customAttribution
+        // array from us.
+        map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
         map.addControl(
           new maplibregl.NavigationControl({

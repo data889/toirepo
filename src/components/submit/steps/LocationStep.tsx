@@ -42,7 +42,7 @@ export function LocationStep({ latitude, longitude, onChange }: LocationStepProp
 
     ;(async () => {
       try {
-        const style = await loadToirepoStyle()
+        const { style } = await loadToirepoStyle()
         if (cancelled || !containerRef.current) return
 
         const map = new maplibregl.Map({
