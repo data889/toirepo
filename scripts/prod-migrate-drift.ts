@@ -14,6 +14,13 @@
 //
 // Usage:
 //   DIRECT_URL='postgresql://...?sslmode=require' pnpm prod:migrate-drift
+//
+// Prisma 7 API note: `--from-url` was removed. The replacement is
+// `--from-config-datasource` which reads from prisma.config.ts. Our
+// config (prisma.config.ts) already resolves
+// `process.env.DIRECT_URL ?? process.env.DATABASE_URL`, so passing
+// DIRECT_URL through env to the spawned prisma process Just Works.
+// The other rename: `--to-schema-datamodel` → `--to-schema`.
 
 import { execSync } from 'node:child_process'
 
@@ -32,30 +39,36 @@ function main() {
   console.log('🔍 Checking schema drift between local schema and', new URL(url).host)
   console.log('   (read-only — no DB writes)\n')
 
-  // `prisma migrate diff` prints the SQL to migrate FROM prod TO local
-  // schema. Empty output = no drift.
+  // `prisma migrate diff` prints the SQL to migrate FROM the configured
+  // datasource (prisma.config.ts → reads DIRECT_URL from env) TO the
+  // local schema. Empty output / "empty migration" marker = no drift.
   let output: string
   try {
     output = execSync(
       [
         'pnpm prisma migrate diff',
-        `--from-url='${url}'`,
-        '--to-schema-datamodel=prisma/schema.prisma',
+        '--from-config-datasource',
+        '--to-schema=prisma/schema.prisma',
         '--script',
       ].join(' '),
-      { encoding: 'utf-8' },
+      {
+        encoding: 'utf-8',
+        env: { ...process.env, DIRECT_URL: url },
+      },
     )
   } catch (err) {
     console.error('✗ Drift check failed:', err)
     process.exit(1)
   }
 
-  // Prisma prints the no-op marker as "-- This is an empty migration."
+  // Prisma 7 with --script prints "-- This is an empty migration." for
+  // a no-diff result; without --script it prints "No difference detected."
+  // We use --script so the SQL is directly actionable when drift exists.
   const trimmed = output.trim()
   const noChanges =
     trimmed === '' ||
     trimmed.includes('This is an empty migration') ||
-    trimmed.startsWith('-- This is empty')
+    trimmed.includes('No difference detected')
 
   if (noChanges) {
     console.log('✓ No schema drift detected — prod schema matches prisma/schema.prisma')
