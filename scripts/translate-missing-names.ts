@@ -26,14 +26,16 @@ import { applyBrandOverrides, formatEnglishAddress, hasKana } from '@/server/dee
 // Translation strategy per cell (M8 brand-overrides extension):
 //   1. Run brand-overrides against the ja source. Known brand names,
 //      station names, and facility nouns substitute in place.
-//   2. If the result is kana-free (pure kanji + latin + digits), skip
-//      DeepL and save a request. Kanji passes through to zh-CN
-//      natively; numbers/latin to en.
-//   3. Otherwise (hiragana/katakana remains), send the ORIGINAL ja
-//      text to DeepL (not the partially-replaced mess — mixing
-//      languages confuses the engine) and re-apply overrides on the
-//      DeepL result to correct anything mistranslated (劳森 → 罗森,
-//      Seven-Eleven → 7-Eleven).
+//   2. Skip DeepL only when BOTH hold:
+//        - target is zh-CN (kanji reads natively in Chinese) AND
+//        - no hiragana/katakana remains
+//      en target always needs DeepL even for kana-free kanji strings
+//      because kanji don't romanize without a transliteration pass
+//      ("東京都" has to become "Tokyo", not stay as kanji).
+//   3. Otherwise send the ORIGINAL ja text to DeepL (mixing
+//      partially-replaced input confuses the engine) and re-apply
+//      overrides on the DeepL result to correct mistranslated brand
+//      names (劳森 → 罗森, Seven-Eleven → 7-Eleven).
 //   4. For en address output, formatEnglishAddress inserts the dashes
 //      DeepL drops ("25 20" → "25-20").
 async function translateCell(
@@ -46,7 +48,7 @@ async function translateCell(
   const finishAddress = (s: string) =>
     kind === 'address' && target === 'en' ? formatEnglishAddress(s) : s
 
-  if (!hasKana(overridden)) {
+  if (target === 'zh-CN' && !hasKana(overridden)) {
     return { text: finishAddress(overridden), usedDeepL: false }
   }
   const deeplOut = await translate(source, target, sourceLocale)
