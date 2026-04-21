@@ -126,6 +126,13 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
           // fallback; MapTiler has global coverage so the user can
           // pan to any city.
           ...(source === 'r2' ? { maxBounds: R2_FALLBACK_MAX_BOUNDS } : {}),
+          // Don't render repeating copies of the world when zoomed
+          // far out. Without this, zoom 0-1 shows two Tokyos
+          // horizontally (and toilet markers double-render). Paired
+          // with minZoom=2 so users can't reach the zoom where the
+          // wrap would be geometrically forced.
+          renderWorldCopies: false,
+          minZoom: 2,
           attributionControl: false,
           dragRotate: false,
           touchPitch: false,
