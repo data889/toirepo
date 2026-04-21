@@ -22,6 +22,9 @@
   "header": {
     "backToMap": "Back to map"
   },
+  "map": {
+    "zoomHint": "Zoom in to find toilets nearby"
+  },
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",

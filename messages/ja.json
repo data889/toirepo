@@ -22,6 +22,9 @@
   "header": {
     "backToMap": "地図に戻る"
   },
+  "map": {
+    "zoomHint": "ズームインして近くのトイレを表示"
+  },
   "auth": {
     "signIn": "ログイン",
     "signOut": "ログアウト",

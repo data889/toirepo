@@ -22,6 +22,9 @@
   "header": {
     "backToMap": "返回地图"
   },
+  "map": {
+    "zoomHint": "放大地图以查看附近厕所"
+  },
   "auth": {
     "signIn": "登录",
     "signOut": "退出登录",

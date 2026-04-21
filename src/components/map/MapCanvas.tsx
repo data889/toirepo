@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { loadToiletIcons } from '@/lib/map/load-icons'
 import { registerPmtilesProtocol } from '@/lib/map/pmtiles-protocol'
@@ -33,6 +33,7 @@ export interface MapCanvasProps {
 
 export function MapCanvas({ className, style }: MapCanvasProps) {
   const locale = useLocale()
+  const tMap = useTranslations('map')
 
   // URL is the source of truth for "which toilet's drawer is open" — gives
   // shareable links and survives reloads. Marker clicks set `?t=slug`;
@@ -360,9 +361,32 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     )
   }
 
+  // M12: below MIN_FETCH_ZOOM the viewport is whole-earth and one query
+  // would either hit the 5000-row limit instantly or miss regions; show
+  // a pill prompt instead. Since renderWorldCopies: false + minZoom: 2
+  // clamp the camera, this effectively fires only at zoom 2.
+  const showZoomHint = !!viewport && viewport.zoom < MIN_FETCH_ZOOM
+
   return (
     <>
       <div ref={containerRef} className={className} style={style} />
+      {showZoomHint && (
+        // Inline position because Tailwind utilities don't cascade
+        // reliably over the map tree (see KNOWN_ISSUES M3 T3.4).
+        <div
+          role="status"
+          className="bg-ink-primary/85 text-paper pointer-events-none rounded-full px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-sm"
+          style={{
+            position: 'absolute',
+            top: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+          }}
+        >
+          {tMap('zoomHint')}
+        </div>
+      )}
       <ToiletDrawer slug={openedSlug} onClose={() => setOpenedSlug(null)} />
       <SubmitFab />
     </>
