@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { api } from '@/lib/trpc/client'
-import { processImageForUpload, uploadViaPresignedUrl } from '@/lib/upload/image-processing'
+import { uploadPhotoToR2 } from '@/lib/photo-upload'
 import type { PhotoData } from '../SubmitForm'
 
 const MAX_PHOTOS = 4
@@ -22,44 +22,6 @@ export function PhotoStep({ photos, onChange }: PhotoStepProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
-  async function processAndUpload(file: File): Promise<PhotoData> {
-    const { original, thumbnail } = await processImageForUpload(file)
-
-    // Two parallel presigned-URL requests — server enforces per-user rate
-    // limit, so in practice these burn 2 tokens per photo.
-    const [origTicket, thumbTicket] = await Promise.all([
-      createUploadUrl.mutateAsync({
-        contentType: 'image/webp',
-        contentLength: original.sizeBytes,
-        kind: 'original',
-      }),
-      createUploadUrl.mutateAsync({
-        contentType: 'image/webp',
-        contentLength: thumbnail.sizeBytes,
-        kind: 'thumbnail',
-      }),
-    ])
-
-    await Promise.all([
-      uploadViaPresignedUrl(origTicket.uploadUrl, original.blob),
-      uploadViaPresignedUrl(thumbTicket.uploadUrl, thumbnail.blob),
-    ])
-
-    // Preview uses the in-memory thumbnail blob to avoid a second
-    // round-trip to R2 just to show what the user already selected.
-    const previewUrl = URL.createObjectURL(thumbnail.blob)
-
-    return {
-      originalKey: origTicket.key,
-      thumbnailKey: thumbTicket.key,
-      width: original.width,
-      height: original.height,
-      sizeBytes: original.sizeBytes,
-      category: 'ENTRANCE',
-      previewUrl,
-    }
-  }
-
   async function handleFiles(files: FileList) {
     setUploadError(null)
     const remainingSlots = MAX_PHOTOS - photos.length
@@ -71,8 +33,20 @@ export function PhotoStep({ photos, onChange }: PhotoStepProps) {
     const newPhotos: PhotoData[] = []
     for (const file of selected) {
       try {
-        const photo = await processAndUpload(file)
-        newPhotos.push(photo)
+        const uploaded = await uploadPhotoToR2(
+          file,
+          (input) => createUploadUrl.mutateAsync(input),
+          'submissions',
+        )
+        newPhotos.push({
+          originalKey: uploaded.originalKey,
+          thumbnailKey: uploaded.thumbnailKey,
+          width: uploaded.width,
+          height: uploaded.height,
+          sizeBytes: uploaded.sizeBytes,
+          category: 'ENTRANCE',
+          previewUrl: uploaded.previewUrl,
+        })
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Upload failed'
         console.error('Photo upload failed:', e)

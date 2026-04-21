@@ -13,6 +13,10 @@ const CreateUploadUrlInputSchema = z.object({
     .positive()
     .max(10 * 1024 * 1024, 'Photo must be < 10MB'),
   kind: z.enum(['original', 'thumbnail']).default('original'),
+  // M7 P2.2: usage tags the R2 key prefix so future cleanup / lifecycle
+  // rules can target one surface at a time. Default 'submissions' keeps
+  // pre-P2.2 callers (M5 SubmitForm) on the same path.
+  usage: z.enum(['submissions', 'reviews', 'appeals']).default('submissions'),
 })
 
 const GetViewUrlsInputSchema = z.object({
@@ -32,8 +36,10 @@ export const photoRouter = createTRPCRouter({
       const ext = input.contentType === 'image/webp' ? 'webp' : 'jpg'
       const subfolder = input.kind === 'thumbnail' ? 'thumb' : 'orig'
       // Per-user namespacing makes audit logs and lifecycle rules easier
-      // (e.g. "delete all photos by banned user X").
-      const key = `submissions/${ctx.user.id}/${subfolder}/${photoId}.${ext}`
+      // (e.g. "delete all photos by banned user X"). Usage prefix
+      // separates submissions / reviews / appeals so future GC scripts
+      // can target one surface at a time.
+      const key = `${input.usage}/${ctx.user.id}/${subfolder}/${photoId}.${ext}`
 
       const s3 = getS3()
       const command = new PutObjectCommand({
