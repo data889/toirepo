@@ -40,37 +40,96 @@ M11 真正的产品闭环 —— 10,106 条 OSM 数据装进 Ming 手机 home sc
 1. **M7 评论/确认/申诉** ✅ 完成
 2. **M8 DeepL 翻译** ✅ 完成
 3. **M10 Vercel 部署**（含 M9 P2 SEO + prod R2 CORS 切换）✅ 完成
-4. **M12 全球 toilet 数据** ✅ P1 完成（2026-04-22）— 365k+ Toilets + viewport bbox lazy fetch
+4. **M12 全球 toilet 数据** ✅ **P1 完成**（2026-04-22）— **503,946 Toilets**
+   全球覆盖 + viewport bbox lazy fetch
+5. **M13 全球 submission 审核流** — 下一步主线，见下
+6. **M14 增长 + PWA onboarding** — M13 之后
 
 ---
 
-## M12 · 全球 toilet 数据
+## M12 · 全球 toilet 数据 ✅ P1 完成
 
-**当前进度**（2026-04-22）：
+**最终状态**（2026-04-22）：
 
-- ✅ **M12 prep · OSM 全球 import 脚本**：`scripts/osm-import-global.ts`
-  + bbox-param `mapOsmElement` + sub-bbox 大洲拆分 + slug 唯一性修复
-- ✅ **M12 prod batch 1**：4 大洲（south_america / africa / north_america
-  / russia_east）成功入 prod，242k Toilets
-- ✅ **M12 prod batch 2**：asia_japan / india / se / middle + oceania +
-  europe sub-bboxes 入 prod，累计 365k+ Toilets
-- ✅ **M12 P1 · 客户端 viewport bbox 查询**（**本轮 2026-04-22**）：
-    - `toilet.listByBbox` tRPC endpoint (PostGIS ST_Intersects)
-    - MapCanvas moveend → 500ms debounce → per-viewport fetch
-    - zoom < 3 onboarding hint 跳过 fetch
-    - admin invalidation 迁移到 listByBbox
-- ⏳ **剩余 M12 候选**（非阻塞）：
-    - 全球级 sparse summary 层（zoom 0-2 抽样显示，目前只 hint）
-    - PENDING own-submission 橙色 overlay
-    - MapLibre `showUserHeading` 自建 DeviceOrientation 控件
-    - R2 `tokyo.pmtiles` 残留对象清理
-    - ReviewForm 编辑 PENDING/REJECTED 完整路径
+- ✅ **503,946 Toilets** 入 prod Supabase（ =~365k 全球 OSM + Tokyo 10k +
+  西欧 5 sub-bbox + user/seed 等）
+- ✅ 北京 / NYC / 伦敦 / 巴黎 / 柏林 / 罗马 / 马德里 / 阿姆斯特丹 / 悉尼
+  / 奥克兰 主要城市 marker 齐
+- ✅ `toilet.listByBbox` (PostGIS `ST_Intersects` + `ST_MakeEnvelope`)
+  per-viewport fetch，500ms debounce on moveend，React Query 5min
+  staleTime 缓存
+- ✅ zoom < 3 onboarding hint 跳过 fetch
+- ✅ admin approval 通过 `utils.toilet.listByBbox.invalidate()` 推送地图
+  refetch
 
-**M13+ 级别**（规模化相关，不急）：
+**过程中吃过的坑（所有已登记 KNOWN_ISSUES）**：
 
-- Overpass on-demand 查询 + 缓存（MVP 不做，当前完整 OSM 预导入够用）
-- 切 vector tile 服务（pgosmtile / Planetiler pipeline）：当前单城市
-  viewport 返回 ≤5000 rows 足够，后续若密度增大再议
+- `--env-file=.env.local` trap（M8/M12 所有 prod 意图落 docker，355k 行
+  错位，已修 + sync-local-to-prod 脚本补救）
+- osm-import-global upsert slug collision（baseSlug 过长时 osmIdShort
+  被 slice 截断）
+- PostGIS location trigger drift（已加 backfill 脚本 + 诊断）
+- tRPC listByBbox zoom `.int()` 拒 float（MapLibre getZoom() 浮点）
+- Overpass silent 0-element return（HTTP 200 + empty elements[] 冒充成功，
+  加 warn 提示 + fetchRegion 缓存 hit 也警）
+- europe_west 大 bbox 静默超时，拆 5 country-level sub-bboxes
+
+**剩余 M12 遗留**（非阻塞，随手可以做）：
+
+- 全球级 sparse summary（zoom 0-2 抽样显示，目前 hint only）
+- PENDING own-submission 橙色 overlay（M10 P2 起挂账多次）
+- MapLibre `showUserHeading` 自建 DeviceOrientation 控件
+- R2 `tokyo.pmtiles` 残留对象清理
+- ReviewForm 编辑 PENDING/REJECTED 完整路径
+- `europe_nordic_ru_wat` 假设 bbox，Ming 如需补俄罗斯/白俄罗斯数据再加
+- `lastCommunityEdit*` 字段对全球化后的兼容审阅
+
+---
+
+## M13 · 全球 submission 审核流扩容
+
+**触发时机**：503k 地图公开后，海外用户会开始提交 / 标记 / 评论。M6
+审核流的 Haiku 成本结构当时按 Tokyo 10k + MVP 流量设计，全球规模下需要
+重新审视。
+
+**关键决策点**：
+
+1. **Haiku 成本预估**：单次 `moderateToilet` 约 $0.003。假设每天全球
+   100 submissions → $9/月，1000 submissions → $90/月。需要设定
+   per-IP / per-user rate limit（M7 P1.5 已有 review/appeal 的 rate
+   key 基建）+ 评审成本上限 alert。
+2. **Review / Confirmation 的全球化**：当前 AI 仅审 Toilet 提交，不审
+   Review / Confirmation body。全球开放后 spam 风险上升，可能需要在
+   `review.create` / `appeal.create` 挂 Haiku。
+3. **审核语言分流**：submission 可能是任意语言，Haiku prompt 目前只
+   提示"中日英"上下文。开放全球后 prompt 要承认任意语言 + 拒绝"看不
+   懂 → default REJECTED"这种保守陷阱。
+4. **Review 照片无 thumbnail pipeline**（KNOWN_ISSUES M7 P1）：全球 UGC
+   照片量大后原图加载拖慢详情页，值得补齐 thumbnail 生成。
+5. **Admin queue 分页 / virtualization**（KNOWN_ISSUES M6）：500+ 队列
+   项时 getViewUrls 批签名会挤上限。
+
+**外部依赖**：无新账号，但 Sentry + Anthropic usage 阈值告警要接上。
+
+---
+
+## M14 · 增长 + PWA onboarding
+
+触发时机：M13 审核流稳定后。
+
+**预期工作**：
+
+- 邀请好友（referral link，共享厕所贡献榜，无排行榜的前提下仅"你的朋友
+  X 也在用 toirepo"）
+- PWA install prompt：iOS Safari 首次访问 3 次后 soft prompt"添加到主
+  屏幕"（目前仅 manifest 支持，缺主动提示）
+- Onboarding flow：新用户首次打开 → 2-3 屏引导（地图 / 筛选 / 提交），
+  跳过入口永久不再弹
+- zh-TW（繁中）locale：V1.0 原计划范围，M14 可以一起做
+- Social sharing：OG image 已 dynamic，再加 Twitter / WeChat / Line
+  share buttons 直接从详情页触发
+
+**外部依赖**：无。
 
 ---
 

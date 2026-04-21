@@ -5,6 +5,44 @@
 
 ---
 
+## M12 收官 (2026-04-22) ✅
+
+**Prod 状态**：Toilet 表 **503,946 行**，全球主要城市 marker 齐（北京 /
+NYC / 伦敦 / 巴黎 / 柏林 / 罗马 / 马德里 / 阿姆斯特丹 / 悉尼 / 奥克兰 均
+实机验证）。`toilet.listByBbox` + MapCanvas moveend + 500ms debounce 链路稳定。
+
+### 本轮 M12 完成的 debt / 新加防御
+
+- **slug uniqueness**：`computeSlug` 保留 osmIdShort 完整，base 从尾部
+  截断。Phase 3.5 pre-check 防止 create/update slug 撞既有行。
+- **location NULL backfill**：`scripts/backfill-toilet-location.ts` +
+  `pnpm prod:backfill-location` — 诊断 trigger/index 存在性，batched
+  CTE UPDATE 修 NULL 行，idempotent。
+- **--env-file trap**（重要）：`tsx --env-file=.env.local` 覆盖外部
+  exported DATABASE_URL，已剥离 6 个 prod-capable 脚本的该 flag + 加
+  `scripts/lib/env-boot.ts` 条件加载 + `announceTarget` 5s grace。
+- **local↔prod 同步**：`scripts/sync-local-to-prod.ts` + `pnpm sync:local-to-prod`
+  — 双 Prisma client，osmId upsert，slug collision preflight，update 路径
+  只动 OSM payload 不碰 prod admin state。
+- **listByBbox float zoom**：zod 去 `.int()`，接受 MapLibre 浮点 zoom。
+- **Overpass silent-0 detection**：`fetchRegion` 现对 HTTP 200 + 空
+  elements[] 打 warn（new fetch + cache hit 都打），指引 Ming 删 cache
+  + 重跑或缩窄 bbox。
+- **europe_west sub-bbox**：拆成 5 country-level bbox
+  (uk_ie / fr_be_lux / de / iberia / alpine_it) 避开大 bbox silent timeout。
+
+### M12 范围内剩余候选（已在 ROADMAP 登记，**非阻塞**）
+
+- PENDING own-submission 橙色 overlay（M10 P2 起多次挂账，半天）
+- MapLibre `showUserHeading` 自建 DeviceOrientation 控件
+- R2 `tokyo.pmtiles` 残留对象清理
+- ReviewForm 编辑 PENDING/REJECTED 完整路径
+- 全球级 sparse summary 层（zoom 0-2 目前仅 hint）
+- `europe_nordic_ru_wat` 假设 bbox — 若未来补俄罗斯 / 白俄罗斯数据再加
+- `lastCommunityEdit*` 字段对全球化后兼容审阅
+
+---
+
 ## M10 P2 polish carryover (2026-04-22)
 
 三个 P2.1 遗留项升级为正式 debt，明确触发条件 + 取消时机，不再散在各章
