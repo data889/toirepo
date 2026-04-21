@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "toirepo",
-    "tagline": "東京の公衆トイレマップ",
+    "tagline": "toirepo",
     "loading": "読み込み中...",
     "error": "エラーが発生しました",
     "retry": "再試行"
@@ -28,7 +28,7 @@
     "mySubmissions": "投稿一覧",
     "signin": {
       "title": "toirepo にログイン",
-      "subtitle": "東京の隠れた無料トイレを見つけよう",
+      "subtitle": "隠れた無料トイレを見つけよう",
       "google": "Google アカウントでログイン",
       "or": "または",
       "emailLabel": "メールアドレス",

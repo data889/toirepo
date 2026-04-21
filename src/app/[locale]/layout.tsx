@@ -23,11 +23,10 @@ const SITE = getSiteUrl()
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: {
-    default: 'toirepo · 东京公共厕所地图',
+    default: 'toirepo',
     template: '%s · toirepo',
   },
-  description:
-    '东京 23 区真实公共厕所地图。10,000+ 条公厕 / 便利店 / 商场厕所数据，来自 OpenStreetMap + 用户提交。',
+  description: '商业建筑里的免费厕所 — 进入路径细节、实时有效性，填补 Google / Apple 地图的盲区。',
   applicationName: 'toirepo',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
@@ -48,7 +47,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'toirepo',
-    title: 'toirepo · 东京公共厕所地图',
+    title: 'toirepo',
     description: '商业建筑里的免费厕所，进入路径细节，实时有效性 — 填补 Google/Apple 地图的盲区。',
     url: SITE,
     locale: 'zh_CN',
@@ -56,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'toirepo · 东京公共厕所地图',
+    title: 'toirepo',
     description: '商业建筑里的免费厕所，进入路径细节，实时有效性 — 填补 Google/Apple 地图的盲区。',
   },
   alternates: {

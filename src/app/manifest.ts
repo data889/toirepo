@@ -16,10 +16,10 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'toirepo · 东京厕所地图',
+    name: 'toirepo',
     short_name: 'toirepo',
     description:
-      '东京 23 区真实厕所地图。10,000+ 条公厕 / 便利店 / 商场数据，来自 OpenStreetMap + 用户提交。',
+      '商业建筑里的免费厕所 — 进入路径细节、实时有效性，填补 Google / Apple 地图的盲区。',
     lang: 'zh-CN',
     dir: 'ltr',
     start_url: '/zh-CN',

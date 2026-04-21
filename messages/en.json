@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "toirepo",
-    "tagline": "Tokyo public toilet map",
+    "tagline": "toirepo",
     "loading": "Loading...",
     "error": "Something went wrong",
     "retry": "Retry"
@@ -28,7 +28,7 @@
     "mySubmissions": "My submissions",
     "signin": {
       "title": "Sign in to toirepo",
-      "subtitle": "Find the hidden free toilets in Tokyo",
+      "subtitle": "Find the hidden free toilets",
       "google": "Sign in with Google",
       "or": "or",
       "emailLabel": "Email",

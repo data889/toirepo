@@ -26,7 +26,7 @@ export async function generateMetadata({
   const address = resolveToiletAddress(toilet, locale) || ''
   const description = address
     ? `${name} · ${address}`
-    : `${name} — toirepo 用户提交的真实公共厕所信息。`
+    : `${name} — toirepo 用户提交的真实厕所信息。`
 
   return {
     title: name,

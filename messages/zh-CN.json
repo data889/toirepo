@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "toirepo",
-    "tagline": "东京公共厕所地图",
+    "tagline": "toirepo",
     "loading": "加载中...",
     "error": "出错了",
     "retry": "重试"
@@ -28,7 +28,7 @@
     "mySubmissions": "我的提交",
     "signin": {
       "title": "登录 toirepo",
-      "subtitle": "发现东京那些藏起来的免费厕所",
+      "subtitle": "发现藏起来的免费厕所",
       "google": "使用 Google 账号登录",
       "or": "或",
       "emailLabel": "邮箱",
