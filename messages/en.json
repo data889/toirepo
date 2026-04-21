@@ -80,7 +80,32 @@
       "totalCount": "{count} reviews",
       "writeReview": "Write review",
       "reportIssue": "Report issue",
-      "noRatings": "No ratings yet"
+      "noRatings": "No ratings yet",
+      "form": {
+        "title": "Write a review",
+        "editTitle": "Edit your review",
+        "moderationNote": "AI pre-screen + human review before it shows publicly.",
+        "ratingLabel": "Rating (required)",
+        "bodyLabel": "Comment (optional)",
+        "bodyPlaceholder": "How was your visit? Clean? Warm water? Purchase required?",
+        "charCount": "{current} / {max}",
+        "photosLabel": "Photos",
+        "addPhoto": "Add",
+        "removePhoto": "Remove",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "submitting": "Submitting…",
+        "success": "Review submitted, awaiting moderation",
+        "successAutoPublished": "Review published",
+        "requireLogin": "Sign in to write a review.",
+        "signinCta": "Sign in",
+        "requireTrust": "Submit one approved toilet to unlock reviews.",
+        "goSubmit": "Submit a toilet",
+        "errorUnauthorized": "Please sign in",
+        "errorForbidden": "Your trust level is too low",
+        "errorTooFrequent": "Too many reviews — try again in an hour",
+        "errorGeneric": "Submission failed, please retry"
+      }
     },
     "trust": {
       "verified": "Verified",

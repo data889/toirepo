@@ -1,7 +1,8 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSession } from '@/hooks/useSession'
 import {
   Sheet,
   SheetContent,
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { ConfirmationCounter } from './ConfirmationCounter'
 import { PhotoGallery } from './PhotoGallery'
 import { RatingSummary } from './RatingSummary'
+import { ReviewForm } from './ReviewForm'
 import { ReviewList } from './ReviewList'
 import { ToiletStatusBadge, shouldDisplayStatusBadge } from './ToiletStatusBadge'
 
@@ -79,6 +81,7 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
   const t = useTranslations('toilet.drawer')
   const tType = useTranslations('toilet.type')
   const tReview = useTranslations('toilet.review')
+  const session = useSession()
 
   // Parallel queries — toilet metadata + reviews. Confirmation count
   // lives inside ConfirmationCounter so it lazy-fetches per-component.
@@ -91,10 +94,20 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
     { enabled: !!toiletQuery.data?.id, staleTime: 60 * 1000 },
   )
 
+  const [reviewFormOpen, setReviewFormOpen] = useState(false)
+
   const isMobile = useIsMobile()
   const side = isMobile ? 'bottom' : 'right'
   const isOpen = !!slug
   const toilet = toiletQuery.data
+
+  // Pre-fill ReviewForm when the user already has an APPROVED review on
+  // this toilet. PENDING / REJECTED rows aren't visible in this query
+  // (review.listByToilet filters by APPROVED) — those callers will
+  // re-enter their text. Acceptable for MVP; full edit-PENDING UX is P2.3.
+  const myReview = session.user
+    ? reviewsQuery.data?.reviews.find((r) => r.user.id === session.user!.id)
+    : undefined
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -169,12 +182,7 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
               <Separator />
 
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  // P2.2 will mount the real review-create modal here.
-                  onClick={() => alert('M7 P2.2 — review.create 实装中')}
-                >
+                <Button variant="default" size="sm" onClick={() => setReviewFormOpen(true)}>
                   {tReview('writeReview')}
                 </Button>
                 <Button
@@ -196,6 +204,21 @@ export function ToiletDrawer({ slug, onClose }: ToiletDrawerProps) {
           </div>
         )}
       </SheetContent>
+      {toilet && reviewFormOpen && (
+        // Conditional mount on `open` — gives us a fresh form instance
+        // each time so state initializes from `existing` without an
+        // effect-based reset (lint: react-hooks/set-state-in-effect).
+        <ReviewForm
+          toiletId={toilet.id}
+          open={reviewFormOpen}
+          onClose={() => setReviewFormOpen(false)}
+          existing={
+            myReview
+              ? { rating: myReview.rating, body: myReview.body, photoKeys: myReview.photoKeys }
+              : undefined
+          }
+        />
+      )}
     </Sheet>
   )
 }

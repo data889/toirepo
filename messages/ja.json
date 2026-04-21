@@ -80,7 +80,32 @@
       "totalCount": "レビュー {count} 件",
       "writeReview": "レビューを書く",
       "reportIssue": "問題を報告",
-      "noRatings": "まだ評価がありません"
+      "noRatings": "まだ評価がありません",
+      "form": {
+        "title": "レビューを書く",
+        "editTitle": "レビューを編集",
+        "moderationNote": "投稿後に AI 事前審査と人手審査を経て公開されます。",
+        "ratingLabel": "評価（必須）",
+        "bodyLabel": "コメント（任意）",
+        "bodyPlaceholder": "ご利用感は？例：清潔・温水あり・要購入 など。",
+        "charCount": "{current} / {max}",
+        "photosLabel": "写真",
+        "addPhoto": "追加",
+        "removePhoto": "削除",
+        "submit": "投稿",
+        "cancel": "キャンセル",
+        "submitting": "送信中…",
+        "success": "レビューを投稿しました（審査中）",
+        "successAutoPublished": "レビューを公開しました",
+        "requireLogin": "レビューを書くにはログインが必要です。",
+        "signinCta": "ログインへ",
+        "requireTrust": "承認済みのトイレ投稿が 1 件あればレビューを書けます。",
+        "goSubmit": "トイレを投稿する",
+        "errorUnauthorized": "ログインが必要です",
+        "errorForbidden": "信頼レベルが不足しています",
+        "errorTooFrequent": "投稿が多すぎます。1 時間後に再試行してください",
+        "errorGeneric": "投稿に失敗しました。再試行してください"
+      }
     },
     "trust": {
       "verified": "認証済み",
