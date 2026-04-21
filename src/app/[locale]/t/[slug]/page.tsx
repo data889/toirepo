@@ -1,9 +1,58 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { getApi } from '@/lib/trpc/server'
 import { Link } from '@/i18n/navigation'
 import { resolveToiletAddress, resolveToiletName } from '@/lib/map/toilet-labels'
 import { PhotoGallery } from '@/components/toilet/PhotoGallery'
+import { getSiteUrl } from '@/lib/site-url'
+
+// Per-toilet metadata: title pulls the locale-resolved name, description
+// falls back to address. Hreflang annotations point at the same slug
+// in the other two locales — search engines surface the right language
+// version per user.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>
+}): Promise<Metadata> {
+  const { locale, slug } = await params
+  const api = await getApi()
+  const toilet = await api.toilet.getBySlug({ slug })
+  if (!toilet) return {}
+
+  const site = getSiteUrl()
+  const name = resolveToiletName(toilet, locale) || 'toilet'
+  const address = resolveToiletAddress(toilet, locale) || ''
+  const description = address
+    ? `${name} · ${address}`
+    : `${name} — toirepo 用户提交的真实公共厕所信息。`
+
+  return {
+    title: name,
+    description,
+    alternates: {
+      canonical: `${site}/${locale}/t/${slug}`,
+      languages: {
+        'zh-CN': `${site}/zh-CN/t/${slug}`,
+        ja: `${site}/ja/t/${slug}`,
+        en: `${site}/en/t/${slug}`,
+        'x-default': `${site}/zh-CN/t/${slug}`,
+      },
+    },
+    openGraph: {
+      title: `${name} · toirepo`,
+      description,
+      url: `${site}/${locale}/t/${slug}`,
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary',
+      title: `${name} · toirepo`,
+      description,
+    },
+  }
+}
 
 const TYPE_LABEL_KEY: Record<string, string> = {
   PUBLIC: 'toilet.type.public',

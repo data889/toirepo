@@ -59,7 +59,13 @@
 | `UPSTASH_REDIS_REST_URL` | console.upstash.com → 你的 Redis instance → REST URL |
 | `UPSTASH_REDIS_REST_TOKEN` | 同上 token |
 
-### 1.7 PostHog 分析
+### 1.7 规范站点 URL（SEO + sitemap）
+
+| Variable | 值 |
+|---|---|
+| `NEXT_PUBLIC_SITE_URL` | `https://toirepo.com` — 驱动 layout metadataBase / robots / sitemap / hreflang 绝对 URL |
+
+### 1.8 PostHog 分析
 
 | Variable | 值 |
 |---|---|
