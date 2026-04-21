@@ -31,6 +31,11 @@ export interface MapCanvasProps {
   className?: string
 }
 
+// M12 debug: temporary logging to diagnose "backend returns N rows,
+// no markers render" path. Remove once Ming's console trace pinpoints
+// the stuck step. Grep browser console for [MapCanvas].
+const DBG = '[MapCanvas]'
+
 export function MapCanvas({ className, style }: MapCanvasProps) {
   const locale = useLocale()
   const tMap = useTranslations('map')
@@ -103,6 +108,18 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     },
   )
 
+  // DBG: render-time snapshot. Fires on every React render so is
+  // noisy — grep for specific transitions.
+  console.log(DBG, 'render', {
+    shouldFetch,
+    viewport,
+    dataCount: toiletsQuery.data?.length,
+    isFetching: toiletsQuery.isFetching,
+    isSuccess: toiletsQuery.isSuccess,
+    isError: toiletsQuery.isError,
+    error: toiletsQuery.error?.message,
+  })
+
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const sourceAddedRef = useRef(false)
@@ -130,14 +147,39 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !sourceAddedRef.current) return
+    const hasMap = !!map
+    const sourceReady = sourceAddedRef.current
     const toilets = toiletsQuery.data
-    if (!toilets) return
+    console.log(DBG, 'data-effect', {
+      hasMap,
+      sourceReady,
+      dataCount: toilets?.length,
+      locale,
+    })
+    if (!map || !sourceReady) {
+      console.log(DBG, 'data-effect skip: map or source not ready')
+      return
+    }
+    if (!toilets) {
+      console.log(DBG, 'data-effect skip: data undefined (query in flight?)')
+      return
+    }
 
     const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
+    console.log(DBG, 'source lookup', { found: !!source })
     if (!source) return
 
-    source.setData(toiletsToGeoJSON(toilets, locale))
+    const geojson = toiletsToGeoJSON(toilets, locale)
+    console.log(DBG, 'setData about to fire', {
+      featureCount: geojson.features.length,
+      firstFeature: geojson.features[0],
+    })
+    try {
+      source.setData(geojson)
+      console.log(DBG, 'setData returned OK')
+    } catch (e) {
+      console.error(DBG, 'setData threw', e)
+    }
   }, [toiletsQuery.data, locale])
 
   useEffect(() => {
@@ -213,12 +255,20 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
         // for user interaction.
         const syncViewport = () => {
           const b = map.getBounds()
-          setViewport({
-            bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
+          const next = {
+            bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] as [
+              number,
+              number,
+              number,
+              number,
+            ],
             zoom: map.getZoom(),
-          })
+          }
+          console.log(DBG, 'syncViewport', next)
+          setViewport(next)
         }
         const scheduleViewportSync = () => {
+          console.log(DBG, 'moveend → scheduleViewportSync (500ms debounce)')
           if (viewportDebounceRef.current) clearTimeout(viewportDebounceRef.current)
           viewportDebounceRef.current = setTimeout(syncViewport, 500)
         }
@@ -307,11 +357,15 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
 
             attachToiletClickHandlers(map, (slug) => setOpenedSlugRef.current(slug))
             sourceAddedRef.current = true
+            console.log(DBG, 'map load complete, source + layers ready')
 
             const toilets = toiletsRef.current
             if (toilets) {
               const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
               if (source) {
+                console.log(DBG, 'load-time replay of stale toiletsRef', {
+                  count: toilets.length,
+                })
                 source.setData(toiletsToGeoJSON(toilets, localeRef.current))
               }
             }
@@ -322,7 +376,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
             syncViewport()
             map.on('moveend', scheduleViewportSync)
           } catch (e) {
-            console.error('Failed to initialize toilet layers:', e)
+            console.error(DBG, 'Failed to initialize toilet layers:', e)
           }
         })
 
