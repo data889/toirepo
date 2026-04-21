@@ -1,10 +1,15 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'node:path'
 
+// happy-dom is required from M7 P2.1 onwards — primitive component
+// tests use @testing-library/react which needs a DOM. happy-dom adds
+// ~50ms cold start over `environment: 'node'` for the legacy logic
+// tests too; acceptable tradeoff for a single-env config.
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts', 'tests/unit/**/*.test.ts'],
+    environment: 'happy-dom',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts'],
+    setupFiles: ['./vitest.setup.ts'],
     env: {
       NODE_ENV: 'test',
     },
