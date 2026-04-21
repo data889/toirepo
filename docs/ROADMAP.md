@@ -37,29 +37,40 @@ M11 真正的产品闭环 —— 10,106 条 OSM 数据装进 Ming 手机 home sc
 
 ## 剩余里程碑推荐顺序
 
-1. **M7 评论/确认/申诉** — 社交层，无外部依赖可立即开工
-2. **M8 DeepL 翻译** — 补齐 zh-CN 名称覆盖，需 DeepL API key
-3. **M10 Vercel 部署**（含 M9 P2 SEO + prod R2 CORS 切换）— 对外上线
-4. **M12 全球 toilet 数据**（新增，2026-04-22 登记）— 底图已全球（Protomaps 公网），toilet 数据仍仅东京 10,106 条
+1. **M7 评论/确认/申诉** ✅ 完成
+2. **M8 DeepL 翻译** ✅ 完成
+3. **M10 Vercel 部署**（含 M9 P2 SEO + prod R2 CORS 切换）✅ 完成
+4. **M12 全球 toilet 数据** ✅ P1 完成（2026-04-22）— 365k+ Toilets + viewport bbox lazy fetch
 
 ---
 
-## M12 · 全球 toilet 数据（占位）
+## M12 · 全球 toilet 数据
 
-**触发时机**：M10 P2 将底图切到 Protomaps 公网后，用户可 zoom out 看到全球地图但 marker 只出现在东京 bbox 内。该 UX 落差需在正式开放注册 + 海外用户到访前处理。
+**当前进度**（2026-04-22）：
 
-**预期工作**：
+- ✅ **M12 prep · OSM 全球 import 脚本**：`scripts/osm-import-global.ts`
+  + bbox-param `mapOsmElement` + sub-bbox 大洲拆分 + slug 唯一性修复
+- ✅ **M12 prod batch 1**：4 大洲（south_america / africa / north_america
+  / russia_east）成功入 prod，242k Toilets
+- ✅ **M12 prod batch 2**：asia_japan / india / se / middle + oceania +
+  europe sub-bboxes 入 prod，累计 365k+ Toilets
+- ✅ **M12 P1 · 客户端 viewport bbox 查询**（**本轮 2026-04-22**）：
+    - `toilet.listByBbox` tRPC endpoint (PostGIS ST_Intersects)
+    - MapCanvas moveend → 500ms debounce → per-viewport fetch
+    - zoom < 3 onboarding hint 跳过 fetch
+    - admin invalidation 迁移到 listByBbox
+- ⏳ **剩余 M12 候选**（非阻塞）：
+    - 全球级 sparse summary 层（zoom 0-2 抽样显示，目前只 hint）
+    - PENDING own-submission 橙色 overlay
+    - MapLibre `showUserHeading` 自建 DeviceOrientation 控件
+    - R2 `tokyo.pmtiles` 残留对象清理
+    - ReviewForm 编辑 PENDING/REJECTED 完整路径
 
-1. **客户端**：MapCanvas 加 bbox-aware 查询——每次 `moveend` 按 viewport bounds 触发 `toilet.listByBbox`，不再一次拉全部
-2. **服务端**：`toilet.listByBbox({ bbox, limit })` 新 procedure 或扩展现有 `list` 支持 bbox 参数（目前已有 bbox 参数，缺客户端调用）
-3. **数据源**：按需查询 Overpass API 拉 viewport 内 OSM 厕所 + 写入本地 Toilet 表增量 upsert（osmId 去重）
-4. **缓存层**：Upstash Redis 缓存 bbox→toilets 1 小时，避免同一区域短时间重复打 Overpass
-5. **审核成本**：按 `moderateToilet` 单次 $0.003 估算，非东京首次访问 bbox 若有 500 条 OSM 数据，Haiku 成本 $1.5——需要 rate-limit 新地区首次同步
-6. **备选方案**：一次性预导入热门城市（东京 / 大阪 / 台北 / 曼谷 / 首尔 / 纽约 / 伦敦 / 巴黎），其他区域 lazy
+**M13+ 级别**（规模化相关，不急）：
 
-**外部依赖**：无新账号需求。Overpass 公网 API free tier 够 MVP。
-
-**何时开工**：M10 部署后一周内视用户反馈。
+- Overpass on-demand 查询 + 缓存（MVP 不做，当前完整 OSM 预导入够用）
+- 切 vector tile 服务（pgosmtile / Planetiler pipeline）：当前单城市
+  viewport 返回 ≤5000 rows 足够，后续若密度增大再议
 
 ---
 
