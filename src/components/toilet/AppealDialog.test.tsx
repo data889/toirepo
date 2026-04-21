@@ -80,6 +80,15 @@ const ownToilet = {
 }
 const otherToilet = { ...ownToilet, submittedById: 'someoneElse' }
 const rejectedOwn = { ...ownToilet, status: 'REJECTED' }
+// M10 P2: REPORT_CLOSED + REPORT_NO_TOILET now accept L0, so an L0
+// user on an APPROVED toilet has 2 eligible options (not zero). To
+// exercise emptyL0, target a toilet whose status matches NO appeal
+// type — CLOSED / NO_TOILET_HERE are in PUBLIC_VISIBLE_STATUSES but
+// have no appeal type with requiredStatus pointing at them.
+const alreadyClosedOtherToilet = {
+  ...otherToilet,
+  status: 'CLOSED' as const,
+}
 
 describe('<AppealDialog />', () => {
   beforeEach(() => {
@@ -95,10 +104,24 @@ describe('<AppealDialog />', () => {
     expect(screen.getByText('toilet.appeal.requireLogin')).toBeInTheDocument()
   })
 
-  it('shows emptyL0 when authenticated user has no eligible types', () => {
+  it('shows emptyL0 when no appeal type matches the toilet status', () => {
+    // Target is already CLOSED — no appeal type has requiredStatus=CLOSED,
+    // so the visible list is empty regardless of trustLevel.
+    mockSession.current = { status: 'authenticated', user: { id: 'u1', trustLevel: 0 } }
+    render(<AppealDialog open onClose={vi.fn()} toilet={alreadyClosedOtherToilet} />)
+    expect(screen.getByText('toilet.appeal.emptyL0')).toBeInTheDocument()
+  })
+
+  it('L0 user on someone else APPROVED toilet sees REPORT_NO_TOILET + REPORT_CLOSED (M10 P2)', () => {
     mockSession.current = { status: 'authenticated', user: { id: 'u1', trustLevel: 0 } }
     render(<AppealDialog open onClose={vi.fn()} toilet={otherToilet} />)
-    expect(screen.getByText('toilet.appeal.emptyL0')).toBeInTheDocument()
+    expect(screen.getByText('toilet.appeal.type.REPORT_NO_TOILET.label')).toBeInTheDocument()
+    expect(screen.getByText('toilet.appeal.type.REPORT_CLOSED.label')).toBeInTheDocument()
+    // L1 ownership + L2 types still hidden
+    expect(screen.queryByText('toilet.appeal.type.SUGGEST_EDIT.label')).toBeNull()
+    expect(screen.queryByText('toilet.appeal.type.REPORT_DATA_ERROR.label')).toBeNull()
+    expect(screen.queryByText('toilet.appeal.type.SELF_SOFT_DELETE.label')).toBeNull()
+    expect(screen.queryByText('toilet.appeal.type.OWN_SUBMISSION_REJECT.label')).toBeNull()
   })
 
   it('L1 user on someone else approved toilet sees REPORT_NO_TOILET + REPORT_CLOSED only', () => {

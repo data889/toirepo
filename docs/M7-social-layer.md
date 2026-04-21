@@ -123,8 +123,8 @@ of the row IS the "yes, still exists" signal. No cooldown (M6 legacy
 | ------------------------ | --------------------- | --------- | --------------------------------------------- |
 | `OWN_SUBMISSION_REJECT`  | `REJECTED`            | L1        | `submittedById === caller.id`                 |
 | `SELF_SOFT_DELETE`       | any non-hidden        | L1        | `submittedById === caller.id`                 |
-| `REPORT_CLOSED`          | `APPROVED`            | L1        | —                                             |
-| `REPORT_NO_TOILET`       | `APPROVED`            | L1        | —                                             |
+| `REPORT_CLOSED`          | `APPROVED`            | L0        | — (M10 P2: lowered from L1 — observational)   |
+| `REPORT_NO_TOILET`       | `APPROVED`            | L0        | — (M10 P2: lowered from L1 — observational)   |
 | `REPORT_DATA_ERROR`      | `APPROVED`            | L2        | —                                             |
 | `SUGGEST_EDIT`           | `APPROVED`            | L2        | `proposedChanges` non-empty and differs from current |
 

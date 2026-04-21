@@ -105,8 +105,14 @@ export async function canReviewToilet(
 }
 
 // M7 P1.5: Appeal gate per AppealType.
-//   Own-data operations (OWN_SUBMISSION_REJECT / SELF_SOFT_DELETE) and
-//   low-stakes observations (REPORT_CLOSED / REPORT_NO_TOILET) require L1.
+//   Own-data operations (OWN_SUBMISSION_REJECT / SELF_SOFT_DELETE)
+//   require L1 because they presuppose the caller already submitted a
+//   toilet at least once.
+//   Low-stakes observations (REPORT_CLOSED / REPORT_NO_TOILET) are L0 —
+//   M10 P2 adjustment: "I went there, there's no toilet" / "it's
+//   closed" is information every logged-in visitor can contribute
+//   without having submitted anything first. Admin still gates the
+//   UPHELD side effect.
 //   Operations that mutate someone else's approved data
 //   (REPORT_DATA_ERROR / SUGGEST_EDIT) require L2.
 //
@@ -122,8 +128,8 @@ export type AppealTypeGated =
 const APPEAL_TYPE_MIN_TRUST: Record<AppealTypeGated, number> = {
   OWN_SUBMISSION_REJECT: 1,
   SELF_SOFT_DELETE: 1,
-  REPORT_CLOSED: 1,
-  REPORT_NO_TOILET: 1,
+  REPORT_CLOSED: 0,
+  REPORT_NO_TOILET: 0,
   REPORT_DATA_ERROR: 2,
   SUGGEST_EDIT: 2,
 }

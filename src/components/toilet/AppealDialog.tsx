@@ -56,14 +56,14 @@ interface AppealOption {
 const OPTIONS: AppealOption[] = [
   {
     type: 'REPORT_NO_TOILET',
-    minTrust: 1,
+    minTrust: 0,
     ownershipRequired: false,
     requiredStatus: 'APPROVED',
     minReason: 10,
   },
   {
     type: 'REPORT_CLOSED',
-    minTrust: 1,
+    minTrust: 0,
     ownershipRequired: false,
     requiredStatus: 'APPROVED',
     minReason: 10,

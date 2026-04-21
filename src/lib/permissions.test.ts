@@ -192,9 +192,28 @@ describe('canAppeal (M7 P1.5 · per-type trust gates)', () => {
     })
   })
 
-  describe('L1 types (OWN_SUBMISSION_REJECT / SELF_SOFT_DELETE / REPORT_CLOSED / REPORT_NO_TOILET)', () => {
-    it('rejects L0', () => {
-      expect(canAppeal(l0User, 'REPORT_CLOSED')).toEqual({
+  describe('L0 types (REPORT_CLOSED / REPORT_NO_TOILET — M10 P2 lowered)', () => {
+    it('accepts L0 for REPORT_CLOSED', () => {
+      expect(canAppeal(l0User, 'REPORT_CLOSED')).toEqual({ ok: true })
+    })
+    it('accepts L0 for REPORT_NO_TOILET', () => {
+      expect(canAppeal(l0User, 'REPORT_NO_TOILET')).toEqual({ ok: true })
+    })
+    it('still accepts L1+ for these (no regression)', () => {
+      expect(canAppeal(l1User, 'REPORT_CLOSED')).toEqual({ ok: true })
+      expect(canAppeal(l1User, 'REPORT_NO_TOILET')).toEqual({ ok: true })
+    })
+  })
+
+  describe('L1 types (OWN_SUBMISSION_REJECT / SELF_SOFT_DELETE)', () => {
+    it('rejects L0 for OWN_SUBMISSION_REJECT', () => {
+      expect(canAppeal(l0User, 'OWN_SUBMISSION_REJECT')).toEqual({
+        ok: false,
+        reason: 'permission.trustLevelTooLow',
+      })
+    })
+    it('rejects L0 for SELF_SOFT_DELETE', () => {
+      expect(canAppeal(l0User, 'SELF_SOFT_DELETE')).toEqual({
         ok: false,
         reason: 'permission.trustLevelTooLow',
       })
@@ -204,12 +223,6 @@ describe('canAppeal (M7 P1.5 · per-type trust gates)', () => {
     })
     it('accepts L1 for SELF_SOFT_DELETE', () => {
       expect(canAppeal(l1User, 'SELF_SOFT_DELETE')).toEqual({ ok: true })
-    })
-    it('accepts L1 for REPORT_CLOSED', () => {
-      expect(canAppeal(l1User, 'REPORT_CLOSED')).toEqual({ ok: true })
-    })
-    it('accepts L1 for REPORT_NO_TOILET', () => {
-      expect(canAppeal(l1User, 'REPORT_NO_TOILET')).toEqual({ ok: true })
     })
   })
 
