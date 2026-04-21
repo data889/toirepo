@@ -137,6 +137,120 @@ export const adminRouter = createTRPCRouter({
   }),
 
   // ==========================================================
+  // M7 P2.3 · Review admin queue
+  // ==========================================================
+
+  /**
+   * List PENDING reviews for the admin queue. Filter by Haiku verdict
+   * so admins can triage AI-flagged content first.
+   */
+  listPendingReviews: adminProcedure
+    .input(
+      z.object({
+        filter: z
+          .enum(['ALL', 'AI_APPROVED', 'AI_FLAG', 'AI_REJECT', 'NO_MODERATION'])
+          .default('ALL'),
+        limit: z.number().int().min(1).max(50).default(20),
+        cursor: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const where: Prisma.ReviewWhereInput = { status: 'PENDING' }
+      if (input.filter === 'AI_APPROVED') where.aiDecision = 'APPROVED'
+      else if (input.filter === 'AI_FLAG') where.aiDecision = 'NEEDS_HUMAN'
+      else if (input.filter === 'AI_REJECT') where.aiDecision = 'REJECTED'
+      else if (input.filter === 'NO_MODERATION') where.aiDecision = null
+
+      const rows = await ctx.db.review.findMany({
+        where,
+        select: {
+          id: true,
+          rating: true,
+          body: true,
+          photoKeys: true,
+          status: true,
+          aiDecision: true,
+          aiConfidence: true,
+          aiReasons: true,
+          createdAt: true,
+          user: { select: { id: true, email: true, name: true, trustLevel: true } },
+          toilet: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              address: true,
+              type: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: input.limit + 1,
+        cursor: input.cursor ? { id: input.cursor } : undefined,
+        skip: input.cursor ? 1 : 0,
+      })
+      let nextCursor: string | undefined
+      if (rows.length > input.limit) {
+        const next = rows.pop()
+        nextCursor = next?.id
+      }
+      return { reviews: rows, nextCursor }
+    }),
+
+  /**
+   * Admin decision on a Review:
+   *  - APPROVED → publishes to the public review list
+   *  - REJECTED → hides + counts toward the user's rejectedSubmissions
+   *               counter (note: counter rename is intentional — Reviews
+   *               and toilet submissions share the same trust signal in
+   *               MVP per the SPEC §14 approval-rate logic). Trust
+   *               recalculated.
+   *  - HIDDEN   → admin-hidden without the trust counter penalty (use
+   *               for borderline-but-not-malicious content)
+   *
+   * `note` is accepted but not yet persisted on the Review row — Review
+   * has no rejectionNote column today (schema unchanged per CLAUDE.md).
+   * AuditLog wiring will pick it up in a later iteration; the input
+   * shape is there now so the UI can submit without churn later.
+   */
+  resolveReview: adminProcedure
+    .input(
+      z.object({
+        reviewId: z.string().min(1),
+        decision: z.enum(['APPROVED', 'REJECTED', 'HIDDEN']),
+        note: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const before = await ctx.db.review.findUnique({
+        where: { id: input.reviewId },
+        select: { status: true, userId: true },
+      })
+      if (!before) throw new TRPCError({ code: 'NOT_FOUND' })
+
+      const updated = await ctx.db.review.update({
+        where: { id: input.reviewId },
+        data: { status: input.decision },
+      })
+
+      // Trust recalc only when this is a fresh transition AND the
+      // decision affects the rejection-rate signal. APPROVED + REJECTED
+      // both update the counters; HIDDEN intentionally does not.
+      if (before.status !== input.decision && input.decision !== 'HIDDEN') {
+        const counterField =
+          input.decision === 'APPROVED' ? 'approvedSubmissions' : 'rejectedSubmissions'
+        await ctx.db.user.update({
+          where: { id: before.userId },
+          data: { [counterField]: { increment: 1 }, autoTrustChecked: false },
+        })
+        await recalculateTrustLevel(before.userId)
+      }
+
+      return { id: updated.id, status: updated.status }
+    }),
+
+  // ==========================================================
   // M7 P1.5 · Appeal admin queue
   // ==========================================================
 

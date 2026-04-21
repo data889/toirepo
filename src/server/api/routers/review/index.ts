@@ -126,6 +126,9 @@ export const reviewRouter = createTRPCRouter({
   /**
    * Caller's own reviews including PENDING / REJECTED. Used by a
    * "My reviews" UI (M7 P2).
+   *
+   * M7 P2.3: includes the target toilet so the /me view can render the
+   * row's title without a second round-trip per row.
    */
   listMine: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db.review.findMany({
@@ -140,6 +143,16 @@ export const reviewRouter = createTRPCRouter({
         aiReasons: true,
         createdAt: true,
         updatedAt: true,
+        toilet: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            address: true,
+            type: true,
+            status: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 100,

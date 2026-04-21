@@ -200,6 +200,8 @@ export const appealRouter = createTRPCRouter({
       return { id: appeal.id, status: appeal.status }
     }),
 
+  // M7 P2.3: include targetToilet so /me/appeals can render the
+  // appeal row's title and link without a second round-trip per row.
   listMine: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db.appeal.findMany({
       where: { userId: ctx.user.id },
@@ -216,6 +218,15 @@ export const appealRouter = createTRPCRouter({
         aiDecision: true,
         aiConfidence: true,
         createdAt: true,
+        targetToilet: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            type: true,
+            status: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
