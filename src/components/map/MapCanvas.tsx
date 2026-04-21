@@ -31,16 +31,6 @@ export interface MapCanvasProps {
   className?: string
 }
 
-// Lightweight ops trace. Preserved after M12 debug (zoom zod bug
-// diagnosis) because the surviving logs are cheap and give future
-// readers a breadcrumb trail from user gesture to marker render:
-//   syncViewport — bbox/zoom after each settle
-//   data-effect — how many rows arrived, how many features rendered
-// Higher-volume logs (render snapshots, raw-fetch shadow requests,
-// moveend debounce-enqueue traces) were removed — they only paid
-// off during the root-cause hunt. Grep [MapCanvas] in browser console.
-const DBG = '[MapCanvas]'
-
 export function MapCanvas({ className, style }: MapCanvasProps) {
   const locale = useLocale()
   const tMap = useTranslations('map')
@@ -147,12 +137,7 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
     const source = map.getSource('toilets') as maplibregl.GeoJSONSource | undefined
     if (!source) return
 
-    const geojson = toiletsToGeoJSON(toilets, locale)
-    console.log(DBG, 'data-effect', {
-      dataCount: toilets.length,
-      featureCount: geojson.features.length,
-    })
-    source.setData(geojson)
+    source.setData(toiletsToGeoJSON(toilets, locale))
   }, [toiletsQuery.data, locale])
 
   useEffect(() => {
@@ -228,17 +213,10 @@ export function MapCanvas({ className, style }: MapCanvasProps) {
         // for user interaction.
         const syncViewport = () => {
           const b = map.getBounds()
-          const next = {
-            bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] as [
-              number,
-              number,
-              number,
-              number,
-            ],
+          setViewport({
+            bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
             zoom: map.getZoom(),
-          }
-          console.log(DBG, 'syncViewport', next)
-          setViewport(next)
+          })
         }
         const scheduleViewportSync = () => {
           if (viewportDebounceRef.current) clearTimeout(viewportDebounceRef.current)
