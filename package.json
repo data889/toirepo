@@ -34,6 +34,7 @@
     "osm:import:dryrun": "tsx --env-file=.env.local scripts/osm-import.ts --dry-run",
     "prod:migrate": "tsx scripts/prod-migrate.ts",
     "prod:migrate-drift": "tsx scripts/prod-migrate-drift.ts",
+    "prod:healthcheck": "tsx scripts/prod-healthcheck.ts",
     "prepare": "husky",
     "postinstall": "prisma generate"
   },
